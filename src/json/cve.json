@@ -1,0 +1,3111 @@
+{
+  "schema_version": "1.0.0",
+  "analyzer": "cve",
+  "title": "Curated Web and Framework CVE Knowledge Base (100 CVEs)",
+  "rules": [
+    {
+      "rule_id": "CVE001",
+      "name": "Apache Log4j2 JNDI remote code execution (Log4Shell)",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-502",
+      "cve": "CVE-2021-44228",
+      "cve_date": "2021-12-10",
+      "severity": "CRITICAL",
+      "description": "Apache Log4j2 JNDI remote code execution (Log4Shell). Affects log4j-core (<2.15.0).",
+      "remediation_example": "Upgrade log4j-core to 2.17.1 or newer",
+      "patterns": {
+        "package": "log4j-core",
+        "affected": "<2.15.0",
+        "ecosystem": "maven",
+        "headers": [
+          "log4j"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "maven",
+        "log4j-core"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-44228"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE002",
+      "name": "Spring Framework RCE via Data Binding parameter binding (Spring4Shell)",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2022-22965",
+      "cve_date": "2022-04-01",
+      "severity": "CRITICAL",
+      "description": "Spring Framework RCE via Data Binding parameter binding (Spring4Shell). Affects spring-beans (<5.3.18).",
+      "remediation_example": "Upgrade Spring Framework to 5.3.18+, 5.2.20+ or newer",
+      "patterns": {
+        "package": "spring-beans",
+        "affected": "<5.3.18",
+        "ecosystem": "maven",
+        "headers": [
+          "spring"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "maven",
+        "spring-beans"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2022-22965"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE003",
+      "name": "Atlassian Confluence OGNL expression injection pre-auth RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-917",
+      "cve": "CVE-2022-26134",
+      "cve_date": "2022-06-02",
+      "severity": "CRITICAL",
+      "description": "Atlassian Confluence OGNL expression injection pre-auth RCE. Affects confluence (<7.18.0).",
+      "remediation_example": "Upgrade Confluence Server and Data Center to fixed release",
+      "patterns": {
+        "package": "confluence",
+        "affected": "<7.18.0",
+        "ecosystem": "server",
+        "headers": [
+          "confluence"
+        ],
+        "paths": [
+          "/confluence/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "confluence"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2022-26134"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE004",
+      "name": "Atlassian Confluence broken access control admin setup bypass",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-287",
+      "cve": "CVE-2023-22515",
+      "cve_date": "2023-10-04",
+      "severity": "CRITICAL",
+      "description": "Atlassian Confluence broken access control admin setup bypass. Affects confluence (<8.5.2).",
+      "remediation_example": "Upgrade Confluence to 8.3.3+, 8.4.3+, 8.5.2+ or newer",
+      "patterns": {
+        "package": "confluence",
+        "affected": "<8.5.2",
+        "ecosystem": "server",
+        "headers": [
+          "confluence"
+        ],
+        "paths": [
+          "/setup/setupadministrator.action"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "confluence"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-22515"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE005",
+      "name": "Atlassian Confluence template injection OGNL RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-1336",
+      "cve": "CVE-2023-22527",
+      "cve_date": "2024-01-16",
+      "severity": "CRITICAL",
+      "description": "Atlassian Confluence template injection OGNL RCE. Affects confluence (<8.5.4).",
+      "remediation_example": "Upgrade Confluence to fixed security release",
+      "patterns": {
+        "package": "confluence",
+        "affected": "<8.5.4",
+        "ecosystem": "server",
+        "headers": [
+          "confluence"
+        ],
+        "paths": [
+          "/template/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "confluence"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-22527"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE006",
+      "name": "Atlassian Confluence Server Webwork OGNL injection RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-917",
+      "cve": "CVE-2021-26084",
+      "cve_date": "2021-08-25",
+      "severity": "CRITICAL",
+      "description": "Atlassian Confluence Server Webwork OGNL injection RCE. Affects confluence (<7.12.5).",
+      "remediation_example": "Upgrade Confluence to 7.12.5 or newer",
+      "patterns": {
+        "package": "confluence",
+        "affected": "<7.12.5",
+        "ecosystem": "server",
+        "headers": [
+          "confluence"
+        ],
+        "paths": [
+          "/pages/createpage-entervariables.action"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "confluence"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-26084"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE007",
+      "name": "Atlassian Confluence improper authorization setup-restore data loss",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-287",
+      "cve": "CVE-2023-22518",
+      "cve_date": "2023-10-31",
+      "severity": "CRITICAL",
+      "description": "Atlassian Confluence improper authorization setup-restore data loss. Affects confluence (<8.5.3).",
+      "remediation_example": "Upgrade Confluence to 7.19.16+, 8.5.3+ or newer",
+      "patterns": {
+        "package": "confluence",
+        "affected": "<8.5.3",
+        "ecosystem": "server",
+        "headers": [
+          "confluence"
+        ],
+        "paths": [
+          "/json/setup-restore.action"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "confluence"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-22518"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE008",
+      "name": "Jenkins CLI args4j arbitrary file read pre-auth RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-22",
+      "cve": "CVE-2024-23897",
+      "cve_date": "2024-01-24",
+      "severity": "CRITICAL",
+      "description": "Jenkins CLI args4j arbitrary file read pre-auth RCE. Affects jenkins (<2.442).",
+      "remediation_example": "Upgrade Jenkins core to 2.442 or 2.426.3 LTS",
+      "patterns": {
+        "package": "jenkins",
+        "affected": "<2.442",
+        "ecosystem": "server",
+        "headers": [
+          "x-jenkins",
+          "jenkins"
+        ],
+        "paths": [
+          "/cli"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "jenkins"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-23897"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE009",
+      "name": "PHP-CGI Windows Best-Fit argument injection RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-78",
+      "cve": "CVE-2024-4577",
+      "cve_date": "2024-06-09",
+      "severity": "CRITICAL",
+      "description": "PHP-CGI Windows Best-Fit argument injection RCE. Affects php (<8.3.8).",
+      "remediation_example": "Upgrade PHP to 8.1.29+, 8.2.20+, 8.3.8+ and disable CGI exposure",
+      "patterns": {
+        "package": "php",
+        "affected": "<8.3.8",
+        "ecosystem": "server",
+        "headers": [
+          "x-powered-by: php",
+          "php"
+        ],
+        "paths": [
+          "/php-cgi/php-cgi.exe"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "php"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-4577"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE010",
+      "name": "Apache Struts2 Jakarta multipart parser OGNL RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-20",
+      "cve": "CVE-2017-5638",
+      "cve_date": "2017-03-11",
+      "severity": "CRITICAL",
+      "description": "Apache Struts2 Jakarta multipart parser OGNL RCE. Affects struts2 (<2.5.10.1).",
+      "remediation_example": "Upgrade Apache Struts to 2.3.32 or 2.5.10.1",
+      "patterns": {
+        "package": "struts2",
+        "affected": "<2.5.10.1",
+        "ecosystem": "maven",
+        "headers": [
+          "struts"
+        ],
+        "paths": [
+          ".action"
+        ]
+      },
+      "tags": [
+        "cve",
+        "maven",
+        "struts2"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2017-5638"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE011",
+      "name": "PHP-FPM fastcgi path_info buffer underflow RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-787",
+      "cve": "CVE-2019-11043",
+      "cve_date": "2019-10-28",
+      "severity": "CRITICAL",
+      "description": "PHP-FPM fastcgi path_info buffer underflow RCE. Affects php-fpm (<7.3.11).",
+      "remediation_example": "Upgrade PHP to 7.1.33+, 7.2.24+, 7.3.11+ and fix nginx regex",
+      "patterns": {
+        "package": "php-fpm",
+        "affected": "<7.3.11",
+        "ecosystem": "server",
+        "headers": [
+          "nginx",
+          "php"
+        ],
+        "paths": [
+          ".php/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "php-fpm"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2019-11043"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE012",
+      "name": "Progress MOVEit Transfer SQL injection pre-auth RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-89",
+      "cve": "CVE-2023-34362",
+      "cve_date": "2023-06-02",
+      "severity": "CRITICAL",
+      "description": "Progress MOVEit Transfer SQL injection pre-auth RCE. Affects moveit (<2023.0.1).",
+      "remediation_example": "Apply vendor patches immediately for MOVEit Transfer",
+      "patterns": {
+        "package": "moveit",
+        "affected": "<2023.0.1",
+        "ecosystem": "server",
+        "headers": [
+          "moveit"
+        ],
+        "paths": [
+          "/human.aspx"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "moveit"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-34362"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE013",
+      "name": "JetBrains TeamCity authentication bypass token generation RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-287",
+      "cve": "CVE-2023-42793",
+      "cve_date": "2023-09-27",
+      "severity": "CRITICAL",
+      "description": "JetBrains TeamCity authentication bypass token generation RCE. Affects teamcity (<2023.05.4).",
+      "remediation_example": "Upgrade TeamCity to 2023.05.4 or install security plugin",
+      "patterns": {
+        "package": "teamcity",
+        "affected": "<2023.05.4",
+        "ecosystem": "server",
+        "headers": [
+          "teamcity"
+        ],
+        "paths": [
+          "/admin/createAdminToken.html"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "teamcity"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-42793"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE014",
+      "name": "JetBrains TeamCity web authentication bypass administrator creation",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-287",
+      "cve": "CVE-2024-27198",
+      "cve_date": "2024-03-04",
+      "severity": "CRITICAL",
+      "description": "JetBrains TeamCity web authentication bypass administrator creation. Affects teamcity (<2023.11.4).",
+      "remediation_example": "Upgrade TeamCity to 2023.11.4 or newer",
+      "patterns": {
+        "package": "teamcity",
+        "affected": "<2023.11.4",
+        "ecosystem": "server",
+        "headers": [
+          "teamcity"
+        ],
+        "paths": [
+          "/app/rest/users"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "teamcity"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-27198"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE015",
+      "name": "Apache HTTP Server 2.4.49 path traversal and RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-22",
+      "cve": "CVE-2021-41773",
+      "cve_date": "2021-10-05",
+      "severity": "CRITICAL",
+      "description": "Apache HTTP Server 2.4.49 path traversal and RCE. Affects apache (=2.4.49).",
+      "remediation_example": "Upgrade Apache HTTP Server to 2.4.51 or newer",
+      "patterns": {
+        "package": "apache",
+        "affected": "=2.4.49",
+        "ecosystem": "server",
+        "headers": [
+          "server: apache/2.4.49"
+        ],
+        "paths": [
+          "/icons/.%%32%65/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "apache"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-41773"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE016",
+      "name": "Apache HTTP Server mod_proxy Unix domain socket SSRF RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-918",
+      "cve": "CVE-2021-40438",
+      "cve_date": "2021-09-16",
+      "severity": "CRITICAL",
+      "description": "Apache HTTP Server mod_proxy Unix domain socket SSRF RCE. Affects apache (<2.4.51).",
+      "remediation_example": "Upgrade Apache HTTP Server to 2.4.51 or newer",
+      "patterns": {
+        "package": "apache",
+        "affected": "<2.4.51",
+        "ecosystem": "server",
+        "headers": [
+          "server: apache"
+        ],
+        "paths": [
+          "/?unix:"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "apache"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-40438"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE017",
+      "name": "GitLab Community and Enterprise Edition unauthenticated DjVu RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2021-22205",
+      "cve_date": "2021-04-23",
+      "severity": "CRITICAL",
+      "description": "GitLab Community and Enterprise Edition unauthenticated DjVu RCE. Affects gitlab (<13.10.3).",
+      "remediation_example": "Upgrade GitLab to 13.8.8+, 13.9.6+, 13.10.3+ or newer",
+      "patterns": {
+        "package": "gitlab",
+        "affected": "<13.10.3",
+        "ecosystem": "server",
+        "headers": [
+          "gitlab"
+        ],
+        "paths": [
+          "/uploads/user"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "gitlab"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-22205"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE018",
+      "name": "GitLab path traversal arbitrary file read vulnerability",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-22",
+      "cve": "CVE-2023-2825",
+      "cve_date": "2023-05-24",
+      "severity": "CRITICAL",
+      "description": "GitLab path traversal arbitrary file read vulnerability. Affects gitlab (<16.0.1).",
+      "remediation_example": "Upgrade GitLab to 16.0.1 or newer",
+      "patterns": {
+        "package": "gitlab",
+        "affected": "<16.0.1",
+        "ecosystem": "server",
+        "headers": [
+          "gitlab"
+        ],
+        "paths": [
+          "/api/v4/projects"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "gitlab"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-2825"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE019",
+      "name": "Microsoft SharePoint Server elevation of privilege authentication bypass",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-287",
+      "cve": "CVE-2023-29357",
+      "cve_date": "2023-06-13",
+      "severity": "CRITICAL",
+      "description": "Microsoft SharePoint Server elevation of privilege authentication bypass. Affects sharepoint (<16.0.14326).",
+      "remediation_example": "Apply Microsoft security updates for SharePoint Server",
+      "patterns": {
+        "package": "sharepoint",
+        "affected": "<16.0.14326",
+        "ecosystem": "server",
+        "headers": [
+          "microsoftsharepointteamservices"
+        ],
+        "paths": [
+          "/_api/web"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "sharepoint"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-29357"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE020",
+      "name": "Laravel Ignition insecure deserialization file write RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2021-3129",
+      "cve_date": "2021-01-15",
+      "severity": "CRITICAL",
+      "description": "Laravel Ignition insecure deserialization file write RCE. Affects facade/ignition (<2.5.2).",
+      "remediation_example": "Upgrade facade/ignition to 2.5.2 or disable debug mode in production",
+      "patterns": {
+        "package": "facade/ignition",
+        "affected": "<2.5.2",
+        "ecosystem": "composer",
+        "headers": [
+          "laravel",
+          "ignition"
+        ],
+        "paths": [
+          "/_ignition/execute-solution"
+        ]
+      },
+      "tags": [
+        "cve",
+        "composer",
+        "facade/ignition"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-3129"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE021",
+      "name": "Cacti remote_agent.php unauthenticated command injection RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-78",
+      "cve": "CVE-2022-46169",
+      "cve_date": "2022-12-05",
+      "severity": "CRITICAL",
+      "description": "Cacti remote_agent.php unauthenticated command injection RCE. Affects cacti (<1.2.23).",
+      "remediation_example": "Upgrade Cacti to 1.2.23 or 1.3.0",
+      "patterns": {
+        "package": "cacti",
+        "affected": "<1.2.23",
+        "ecosystem": "server",
+        "headers": [
+          "cacti"
+        ],
+        "paths": [
+          "/remote_agent.php"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "cacti"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2022-46169"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE022",
+      "name": "Apache CouchDB default administrative erlang cookie remote RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-306",
+      "cve": "CVE-2022-24706",
+      "cve_date": "2022-04-26",
+      "severity": "CRITICAL",
+      "description": "Apache CouchDB default administrative erlang cookie remote RCE. Affects couchdb (<3.2.2).",
+      "remediation_example": "Upgrade Apache CouchDB to 3.2.2 and bind epmd to 127.0.0.1",
+      "patterns": {
+        "package": "couchdb",
+        "affected": "<3.2.2",
+        "ecosystem": "server",
+        "headers": [
+          "server: couchdb"
+        ],
+        "paths": [
+          "/_utils/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "couchdb"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2022-24706"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE023",
+      "name": "WordPress Automatic Plugin unauthenticated SQL injection admin creation",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-89",
+      "cve": "CVE-2024-27956",
+      "cve_date": "2024-03-14",
+      "severity": "CRITICAL",
+      "description": "WordPress Automatic Plugin unauthenticated SQL injection admin creation. Affects wp-automatic (<3.92.1).",
+      "remediation_example": "Upgrade WordPress Automatic plugin to 3.92.1 or newer",
+      "patterns": {
+        "package": "wp-automatic",
+        "affected": "<3.92.1",
+        "ecosystem": "wordpress",
+        "headers": [
+          "wordpress"
+        ],
+        "paths": [
+          "/wp-content/plugins/wp-automatic/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "wordpress",
+        "wp-automatic"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-27956"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE024",
+      "name": "WordPress Backup Migration plugin unauthenticated PHP code injection",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2023-6553",
+      "cve_date": "2023-12-11",
+      "severity": "CRITICAL",
+      "description": "WordPress Backup Migration plugin unauthenticated PHP code injection. Affects backup-backup (<1.3.8).",
+      "remediation_example": "Upgrade Backup Migration plugin to 1.3.8 or newer",
+      "patterns": {
+        "package": "backup-backup",
+        "affected": "<1.3.8",
+        "ecosystem": "wordpress",
+        "headers": [
+          "wordpress"
+        ],
+        "paths": [
+          "/wp-content/plugins/backup-backup/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "wordpress",
+        "backup-backup"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-6553"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE025",
+      "name": "WordPress Ultimate Member plugin unauthenticated SQL injection",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-89",
+      "cve": "CVE-2024-2879",
+      "cve_date": "2024-04-09",
+      "severity": "CRITICAL",
+      "description": "WordPress Ultimate Member plugin unauthenticated SQL injection. Affects ultimate-member (<2.8.4).",
+      "remediation_example": "Upgrade Ultimate Member plugin to 2.8.4 or newer",
+      "patterns": {
+        "package": "ultimate-member",
+        "affected": "<2.8.4",
+        "ecosystem": "wordpress",
+        "headers": [
+          "wordpress"
+        ],
+        "paths": [
+          "/wp-content/plugins/ultimate-member/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "wordpress",
+        "ultimate-member"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-2879"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE026",
+      "name": "WordPress Bricks Builder theme unauthenticated eval code execution",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2024-25600",
+      "cve_date": "2024-02-13",
+      "severity": "CRITICAL",
+      "description": "WordPress Bricks Builder theme unauthenticated eval code execution. Affects bricks (<1.9.6.1).",
+      "remediation_example": "Upgrade Bricks Builder theme to 1.9.6.1 or newer",
+      "patterns": {
+        "package": "bricks",
+        "affected": "<1.9.6.1",
+        "ecosystem": "wordpress",
+        "headers": [
+          "bricks"
+        ],
+        "paths": [
+          "/wp-json/bricks/v1/render_element"
+        ]
+      },
+      "tags": [
+        "cve",
+        "wordpress",
+        "bricks"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-25600"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE027",
+      "name": "WordPress Essential Addons for Elementor privilege escalation to admin",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-269",
+      "cve": "CVE-2023-38606",
+      "cve_date": "2023-07-28",
+      "severity": "CRITICAL",
+      "description": "WordPress Essential Addons for Elementor privilege escalation to admin. Affects essential-addons (<5.8.4).",
+      "remediation_example": "Upgrade Essential Addons for Elementor to 5.8.4 or newer",
+      "patterns": {
+        "package": "essential-addons",
+        "affected": "<5.8.4",
+        "ecosystem": "wordpress",
+        "headers": [
+          "wordpress"
+        ],
+        "paths": [
+          "/wp-content/plugins/essential-addons-for-elementor-lite/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "wordpress",
+        "essential-addons"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-38606"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE028",
+      "name": "Drupal core render array AJAX request pre-auth RCE (Drupalgeddon2)",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-20",
+      "cve": "CVE-2018-7600",
+      "cve_date": "2018-03-29",
+      "severity": "CRITICAL",
+      "description": "Drupal core render array AJAX request pre-auth RCE (Drupalgeddon2). Affects drupal (<8.5.1).",
+      "remediation_example": "Upgrade Drupal core to 7.58, 8.4.6, or 8.5.1",
+      "patterns": {
+        "package": "drupal",
+        "affected": "<8.5.1",
+        "ecosystem": "server",
+        "headers": [
+          "x-generator: drupal"
+        ],
+        "paths": [
+          "/user/register"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "drupal"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2018-7600"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE029",
+      "name": "Adobe Commerce / Magento improper input validation pre-auth RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-20",
+      "cve": "CVE-2022-24086",
+      "cve_date": "2022-02-17",
+      "severity": "CRITICAL",
+      "description": "Adobe Commerce / Magento improper input validation pre-auth RCE. Affects magento (<2.4.3-p1).",
+      "remediation_example": "Apply Adobe security patch MDVA-43395 or upgrade Magento",
+      "patterns": {
+        "package": "magento",
+        "affected": "<2.4.3-p1",
+        "ecosystem": "server",
+        "headers": [
+          "magento"
+        ],
+        "paths": [
+          "/checkout/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "magento"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2022-24086"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE030",
+      "name": "Adobe Commerce / Magento REST API XML external entity RCE (CosmicSting)",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-611",
+      "cve": "CVE-2024-34102",
+      "cve_date": "2024-06-11",
+      "severity": "CRITICAL",
+      "description": "Adobe Commerce / Magento REST API XML external entity RCE (CosmicSting). Affects magento (<2.4.7-p1).",
+      "remediation_example": "Apply Adobe CosmicSting hotfix or upgrade to 2.4.7-p1",
+      "patterns": {
+        "package": "magento",
+        "affected": "<2.4.7-p1",
+        "ecosystem": "server",
+        "headers": [
+          "magento"
+        ],
+        "paths": [
+          "/rest/V1/guest-carts"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "magento"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-34102"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE031",
+      "name": "Adobe ColdFusion arbitrary file read and deserialization RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-502",
+      "cve": "CVE-2023-26360",
+      "cve_date": "2023-03-14",
+      "severity": "CRITICAL",
+      "description": "Adobe ColdFusion arbitrary file read and deserialization RCE. Affects coldfusion (<2021.6).",
+      "remediation_example": "Apply Adobe ColdFusion hotfix for APSB23-25",
+      "patterns": {
+        "package": "coldfusion",
+        "affected": "<2021.6",
+        "ecosystem": "server",
+        "headers": [
+          "coldfusion"
+        ],
+        "paths": [
+          "/CFIDE/administrator/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "coldfusion"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-26360"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE032",
+      "name": "Adobe ColdFusion unsafe deserialization pre-auth RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-502",
+      "cve": "CVE-2023-38203",
+      "cve_date": "2023-07-11",
+      "severity": "CRITICAL",
+      "description": "Adobe ColdFusion unsafe deserialization pre-auth RCE. Affects coldfusion (<2021.8).",
+      "remediation_example": "Apply Adobe ColdFusion security updates APSB23-40",
+      "patterns": {
+        "package": "coldfusion",
+        "affected": "<2021.8",
+        "ecosystem": "server",
+        "headers": [
+          "coldfusion"
+        ],
+        "paths": [
+          "/CFIDE/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "coldfusion"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-38203"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE033",
+      "name": "Adobe ColdFusion security feature bypass access control RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-287",
+      "cve": "CVE-2023-38205",
+      "cve_date": "2023-07-14",
+      "severity": "CRITICAL",
+      "description": "Adobe ColdFusion security feature bypass access control RCE. Affects coldfusion (<2021.9).",
+      "remediation_example": "Apply Adobe ColdFusion security update APSB23-41",
+      "patterns": {
+        "package": "coldfusion",
+        "affected": "<2021.9",
+        "ecosystem": "server",
+        "headers": [
+          "coldfusion"
+        ],
+        "paths": [
+          "/cf_scripts/scripts/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "coldfusion"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-38205"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE034",
+      "name": "Apache Tomcat AJP file read and JSP inclusion RCE (Ghostcat)",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-22",
+      "cve": "CVE-2020-1938",
+      "cve_date": "2020-02-24",
+      "severity": "CRITICAL",
+      "description": "Apache Tomcat AJP file read and JSP inclusion RCE (Ghostcat). Affects tomcat (<9.0.31).",
+      "remediation_example": "Upgrade Apache Tomcat to 7.0.100, 8.5.51, 9.0.31 or disable AJP",
+      "patterns": {
+        "package": "tomcat",
+        "affected": "<9.0.31",
+        "ecosystem": "server",
+        "headers": [
+          "server: apache-coyote"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "tomcat"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2020-1938"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE035",
+      "name": "Apache Druid embedded JavaScript execution in ingestion spec RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2021-25646",
+      "cve_date": "2021-01-29",
+      "severity": "CRITICAL",
+      "description": "Apache Druid embedded JavaScript execution in ingestion spec RCE. Affects druid (<0.20.1).",
+      "remediation_example": "Upgrade Apache Druid to 0.20.1 and disable user-defined JavaScript",
+      "patterns": {
+        "package": "druid",
+        "affected": "<0.20.1",
+        "ecosystem": "server",
+        "headers": [
+          "druid"
+        ],
+        "paths": [
+          "/druid/indexer/v1/sampler"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "druid"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-25646"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE036",
+      "name": "Apache Commons Text string lookup variable interpolation RCE (Text4Shell)",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2022-42889",
+      "cve_date": "2022-10-13",
+      "severity": "CRITICAL",
+      "description": "Apache Commons Text string lookup variable interpolation RCE (Text4Shell). Affects commons-text (<1.10.0).",
+      "remediation_example": "Upgrade org.apache.commons:commons-text to 1.10.0 or newer",
+      "patterns": {
+        "package": "commons-text",
+        "affected": "<1.10.0",
+        "ecosystem": "maven",
+        "headers": [
+          "commons-text"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "maven",
+        "commons-text"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2022-42889"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE037",
+      "name": "XStream unsafe deserialization arbitrary code execution from untrusted stream",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-502",
+      "cve": "CVE-2021-21345",
+      "cve_date": "2021-03-22",
+      "severity": "CRITICAL",
+      "description": "XStream unsafe deserialization arbitrary code execution from untrusted stream. Affects xstream (<1.4.16).",
+      "remediation_example": "Upgrade com.thoughtworks.xstream:xstream to 1.4.16 or newer",
+      "patterns": {
+        "package": "xstream",
+        "affected": "<1.4.16",
+        "ecosystem": "maven",
+        "headers": [
+          "xstream"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "maven",
+        "xstream"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-21345"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE038",
+      "name": "Oracle WebLogic Server console handle path traversal pre-auth RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-287",
+      "cve": "CVE-2020-14882",
+      "cve_date": "2020-10-21",
+      "severity": "CRITICAL",
+      "description": "Oracle WebLogic Server console handle path traversal pre-auth RCE. Affects weblogic (<14.1.1.0).",
+      "remediation_example": "Apply Oracle Critical Patch Update for WebLogic Server",
+      "patterns": {
+        "package": "weblogic",
+        "affected": "<14.1.1.0",
+        "ecosystem": "server",
+        "headers": [
+          "weblogic"
+        ],
+        "paths": [
+          "/console/images/%252e%252e%252fconsole.portal"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "weblogic"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2020-14882"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE039",
+      "name": "Apache ActiveMQ OpenWire unmarshaling arbitrary class loading RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-502",
+      "cve": "CVE-2023-46604",
+      "cve_date": "2023-10-27",
+      "severity": "CRITICAL",
+      "description": "Apache ActiveMQ OpenWire unmarshaling arbitrary class loading RCE. Affects activemq (<5.18.3).",
+      "remediation_example": "Upgrade Apache ActiveMQ to 5.15.16, 5.16.7, 5.17.6, 5.18.3 or newer",
+      "patterns": {
+        "package": "activemq",
+        "affected": "<5.18.3",
+        "ecosystem": "server",
+        "headers": [
+          "activemq"
+        ],
+        "paths": [
+          "/admin/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "activemq"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-46604"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE040",
+      "name": "Microsoft Exchange Server SSRF arbitrary file write RCE (ProxyLogon)",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-918",
+      "cve": "CVE-2021-26855",
+      "cve_date": "2021-03-02",
+      "severity": "CRITICAL",
+      "description": "Microsoft Exchange Server SSRF arbitrary file write RCE (ProxyLogon). Affects exchange (<15.1.2176).",
+      "remediation_example": "Install Microsoft Exchange Server Security Updates for ProxyLogon",
+      "patterns": {
+        "package": "exchange",
+        "affected": "<15.1.2176",
+        "ecosystem": "server",
+        "headers": [
+          "x-feserver"
+        ],
+        "paths": [
+          "/owa/auth/x.js"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "exchange"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-26855"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE041",
+      "name": "Microsoft Exchange Server NTLM relaying elevation of privilege",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-294",
+      "cve": "CVE-2024-21410",
+      "cve_date": "2024-02-13",
+      "severity": "CRITICAL",
+      "description": "Microsoft Exchange Server NTLM relaying elevation of privilege. Affects exchange (<15.2.1258).",
+      "remediation_example": "Install Exchange Server 2019 CU14 or enable Extended Protection",
+      "patterns": {
+        "package": "exchange",
+        "affected": "<15.2.1258",
+        "ecosystem": "server",
+        "headers": [
+          "exchange"
+        ],
+        "paths": [
+          "/rpc/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "exchange"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-21410"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE042",
+      "name": "ForgeRock Access Management JATO pre-auth remote code execution",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-502",
+      "cve": "CVE-2021-35464",
+      "cve_date": "2021-06-30",
+      "severity": "CRITICAL",
+      "description": "ForgeRock Access Management JATO pre-auth remote code execution. Affects openam (<7.0.0).",
+      "remediation_example": "Upgrade ForgeRock AM to 7.0 or block /AM/oauth2/..;/ access",
+      "patterns": {
+        "package": "openam",
+        "affected": "<7.0.0",
+        "ecosystem": "server",
+        "headers": [
+          "openam"
+        ],
+        "paths": [
+          "/openam/oauth2/..;/ccversion/Version"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "openam"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-35464"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE043",
+      "name": "ownCloud graphapi phpinfo environment credential disclosure",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-200",
+      "cve": "CVE-2023-49103",
+      "cve_date": "2023-11-21",
+      "severity": "CRITICAL",
+      "description": "ownCloud graphapi phpinfo environment credential disclosure. Affects owncloud-graphapi (<0.3.1).",
+      "remediation_example": "Delete owncloud/apps/graphapi/vendor/microsoft/microsoft-graph/tests/GetPhpInfo.php",
+      "patterns": {
+        "package": "owncloud-graphapi",
+        "affected": "<0.3.1",
+        "ecosystem": "server",
+        "headers": [
+          "owncloud"
+        ],
+        "paths": [
+          "/apps/graphapi/vendor/microsoft/microsoft-graph/tests/GetPhpInfo.php"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "owncloud-graphapi"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-49103"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE044",
+      "name": "GLPI REST API unauthenticated SQL injection in apiclient.class.php",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-89",
+      "cve": "CVE-2023-24055",
+      "cve_date": "2023-01-26",
+      "severity": "CRITICAL",
+      "description": "GLPI REST API unauthenticated SQL injection in apiclient.class.php. Affects glpi (<10.0.6).",
+      "remediation_example": "Upgrade GLPI to 10.0.6 or newer",
+      "patterns": {
+        "package": "glpi",
+        "affected": "<10.0.6",
+        "ecosystem": "server",
+        "headers": [
+          "glpi"
+        ],
+        "paths": [
+          "/apiclient.class.php"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "glpi"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-24055"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE045",
+      "name": "Apache HugeGraph Server Gremlin script execution sandbox bypass RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2024-27348",
+      "cve_date": "2024-04-23",
+      "severity": "CRITICAL",
+      "description": "Apache HugeGraph Server Gremlin script execution sandbox bypass RCE. Affects hugegraph (<1.3.0).",
+      "remediation_example": "Upgrade Apache HugeGraph Server to 1.3.0 or enable authentication",
+      "patterns": {
+        "package": "hugegraph",
+        "affected": "<1.3.0",
+        "ecosystem": "server",
+        "headers": [
+          "hugegraph"
+        ],
+        "paths": [
+          "/gremlin"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "hugegraph"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-27348"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE046",
+      "name": "SolarWinds Web Help Desk hardcoded credential pre-auth RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-798",
+      "cve": "CVE-2024-28986",
+      "cve_date": "2024-08-14",
+      "severity": "CRITICAL",
+      "description": "SolarWinds Web Help Desk hardcoded credential pre-auth RCE. Affects webhelpdesk (<12.8.3-hf1).",
+      "remediation_example": "Apply SolarWinds Web Help Desk 12.8.3 Hotfix 1",
+      "patterns": {
+        "package": "webhelpdesk",
+        "affected": "<12.8.3-hf1",
+        "ecosystem": "server",
+        "headers": [
+          "helpdesk"
+        ],
+        "paths": [
+          "/helpdesk/WebObjects/Helpdesk.woa"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "webhelpdesk"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-28986"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE047",
+      "name": "MinIO cluster deployment bootstrap information disclosure S3 token leak",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-200",
+      "cve": "CVE-2023-28432",
+      "cve_date": "2023-03-22",
+      "severity": "CRITICAL",
+      "description": "MinIO cluster deployment bootstrap information disclosure S3 token leak. Affects minio (<RELEASE.2023-03-20T20-16-18Z).",
+      "remediation_example": "Upgrade MinIO server to RELEASE.2023-03-20T20-16-18Z or newer",
+      "patterns": {
+        "package": "minio",
+        "affected": "<RELEASE.2023-03-20T20-16-18Z",
+        "ecosystem": "server",
+        "headers": [
+          "server: minio"
+        ],
+        "paths": [
+          "/minio/bootstrap/v1/verify"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "minio"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-28432"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE048",
+      "name": "Spring Cloud Function SpEL expression evaluation routing RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2022-22963",
+      "cve_date": "2022-03-29",
+      "severity": "CRITICAL",
+      "description": "Spring Cloud Function SpEL expression evaluation routing RCE. Affects spring-cloud-function (<3.2.3).",
+      "remediation_example": "Upgrade Spring Cloud Function to 3.1.7, 3.2.3 or newer",
+      "patterns": {
+        "package": "spring-cloud-function",
+        "affected": "<3.2.3",
+        "ecosystem": "maven",
+        "headers": [
+          "spring"
+        ],
+        "paths": [
+          "/functionRouter"
+        ]
+      },
+      "tags": [
+        "cve",
+        "maven",
+        "spring-cloud-function"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2022-22963"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE049",
+      "name": "GeoServer OGC API GeoTools XPath evaluation remote code execution",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2024-36401",
+      "cve_date": "2024-07-01",
+      "severity": "CRITICAL",
+      "description": "GeoServer OGC API GeoTools XPath evaluation remote code execution. Affects geoserver (<2.25.2).",
+      "remediation_example": "Upgrade GeoServer to 2.24.4, 2.25.2 or remove gt-complex jar",
+      "patterns": {
+        "package": "geoserver",
+        "affected": "<2.25.2",
+        "ecosystem": "server",
+        "headers": [
+          "geoserver"
+        ],
+        "paths": [
+          "/geoserver/wfs"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "geoserver"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-36401"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE050",
+      "name": "Rejetto HTTP File Server template injection pre-auth RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-1336",
+      "cve": "CVE-2024-23692",
+      "cve_date": "2024-05-30",
+      "severity": "CRITICAL",
+      "description": "Rejetto HTTP File Server template injection pre-auth RCE. Affects hfs (<2.3m).",
+      "remediation_example": "Upgrade Rejetto HFS to 2.4 or migrate to HFS 3.x",
+      "patterns": {
+        "package": "hfs",
+        "affected": "<2.3m",
+        "ecosystem": "server",
+        "headers": [
+          "server: hfs"
+        ],
+        "paths": [
+          "/?%7B.%7D"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "hfs"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-23692"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE051",
+      "name": "Grafana plugin assets directory traversal arbitrary file read",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-22",
+      "cve": "CVE-2021-43798",
+      "cve_date": "2021-12-07",
+      "severity": "HIGH",
+      "description": "Grafana plugin assets directory traversal arbitrary file read. Affects grafana (<8.3.1).",
+      "remediation_example": "Upgrade Grafana to 8.3.1, 8.2.7, 8.1.8 or 8.0.7",
+      "patterns": {
+        "package": "grafana",
+        "affected": "<8.3.1",
+        "ecosystem": "server",
+        "headers": [
+          "grafana"
+        ],
+        "paths": [
+          "/public/plugins/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "grafana"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-43798"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE052",
+      "name": "Ignite Realtime Openfire admin console path traversal auth bypass",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-287",
+      "cve": "CVE-2023-32315",
+      "cve_date": "2023-05-26",
+      "severity": "HIGH",
+      "description": "Ignite Realtime Openfire admin console path traversal auth bypass. Affects openfire (<4.7.5).",
+      "remediation_example": "Upgrade Openfire to 4.6.8, 4.7.5 or 4.8.0",
+      "patterns": {
+        "package": "openfire",
+        "affected": "<4.7.5",
+        "ecosystem": "server",
+        "headers": [
+          "openfire"
+        ],
+        "paths": [
+          "/setup/setup-snoop.jsp"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "openfire"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-32315"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE053",
+      "name": "Joomla CMS Web API improper access control database credential leak",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-306",
+      "cve": "CVE-2023-23752",
+      "cve_date": "2023-02-16",
+      "severity": "HIGH",
+      "description": "Joomla CMS Web API improper access control database credential leak. Affects joomla (<4.2.8).",
+      "remediation_example": "Upgrade Joomla to 4.2.8 or newer",
+      "patterns": {
+        "package": "joomla",
+        "affected": "<4.2.8",
+        "ecosystem": "server",
+        "headers": [
+          "joomla"
+        ],
+        "paths": [
+          "/api/index.php/v1/config/application"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "joomla"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-23752"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE054",
+      "name": "Adobe ColdFusion access control administrator bypass via path traversal",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-287",
+      "cve": "CVE-2023-29298",
+      "cve_date": "2023-07-11",
+      "severity": "HIGH",
+      "description": "Adobe ColdFusion access control administrator bypass via path traversal. Affects coldfusion (<2021.7).",
+      "remediation_example": "Apply Adobe ColdFusion hotfix APSB23-40 or newer",
+      "patterns": {
+        "package": "coldfusion",
+        "affected": "<2021.7",
+        "ecosystem": "server",
+        "headers": [
+          "coldfusion"
+        ],
+        "paths": [
+          "/cf_scripts/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "coldfusion"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-29298"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE055",
+      "name": "Apache Tomcat HTTP PUT method JSP arbitrary file upload RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-434",
+      "cve": "CVE-2017-12617",
+      "cve_date": "2017-09-19",
+      "severity": "HIGH",
+      "description": "Apache Tomcat HTTP PUT method JSP arbitrary file upload RCE. Affects tomcat (<8.5.23).",
+      "remediation_example": "Upgrade Tomcat to 7.0.82, 8.0.47, 8.5.23 or set readonly=true",
+      "patterns": {
+        "package": "tomcat",
+        "affected": "<8.5.23",
+        "ecosystem": "server",
+        "headers": [
+          "tomcat"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "tomcat"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2017-12617"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE056",
+      "name": "Apache Tomcat Windows CGI servlet argument command injection",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-78",
+      "cve": "CVE-2019-0232",
+      "cve_date": "2019-04-15",
+      "severity": "HIGH",
+      "description": "Apache Tomcat Windows CGI servlet argument command injection. Affects tomcat (<9.0.19).",
+      "remediation_example": "Upgrade Tomcat to 9.0.19+, 8.5.40+, 7.0.94+ and set enableCmdLineArguments=false",
+      "patterns": {
+        "package": "tomcat",
+        "affected": "<9.0.19",
+        "ecosystem": "server",
+        "headers": [
+          "tomcat"
+        ],
+        "paths": [
+          "/cgi-bin/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "tomcat"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2019-0232"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE057",
+      "name": "Oracle WebLogic Server T3/IIOP protocol JNDI lookup RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-502",
+      "cve": "CVE-2023-21839",
+      "cve_date": "2023-01-17",
+      "severity": "HIGH",
+      "description": "Oracle WebLogic Server T3/IIOP protocol JNDI lookup RCE. Affects weblogic (<14.1.1.0).",
+      "remediation_example": "Apply Oracle WebLogic Critical Patch Update January 2023",
+      "patterns": {
+        "package": "weblogic",
+        "affected": "<14.1.1.0",
+        "ecosystem": "server",
+        "headers": [
+          "weblogic"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "weblogic"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-21839"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE058",
+      "name": "Apache Traffic Control Traffic Ops SQL injection in deliveryservice_servers",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-89",
+      "cve": "CVE-2024-45387",
+      "cve_date": "2024-09-10",
+      "severity": "HIGH",
+      "description": "Apache Traffic Control Traffic Ops SQL injection in deliveryservice_servers. Affects traffic-control (<8.0.1).",
+      "remediation_example": "Upgrade Apache Traffic Control to 8.0.1 or newer",
+      "patterns": {
+        "package": "traffic-control",
+        "affected": "<8.0.1",
+        "ecosystem": "server",
+        "headers": [
+          "traffic-control"
+        ],
+        "paths": [
+          "/api/4.0/deliveryservice_servers"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "traffic-control"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-45387"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE059",
+      "name": "Microsoft Exchange Server autodiscover powershell SSRF (ProxyNotShell)",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-918",
+      "cve": "CVE-2022-41040",
+      "cve_date": "2022-10-01",
+      "severity": "HIGH",
+      "description": "Microsoft Exchange Server autodiscover powershell SSRF (ProxyNotShell). Affects exchange (<15.2.986).",
+      "remediation_example": "Apply Microsoft Exchange October 2022 Security Updates",
+      "patterns": {
+        "package": "exchange",
+        "affected": "<15.2.986",
+        "ecosystem": "server",
+        "headers": [
+          "exchange"
+        ],
+        "paths": [
+          "/autodiscover/autodiscover.json"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "exchange"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2022-41040"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE060",
+      "name": "Veeam Backup & Replication missing auth TCP 9401 credential disclosure",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-200",
+      "cve": "CVE-2023-27532",
+      "cve_date": "2023-03-23",
+      "severity": "HIGH",
+      "description": "Veeam Backup & Replication missing auth TCP 9401 credential disclosure. Affects veeam (<12.0.0.1420).",
+      "remediation_example": "Upgrade Veeam Backup & Replication to 11a or 12 or block port 9401",
+      "patterns": {
+        "package": "veeam",
+        "affected": "<12.0.0.1420",
+        "ecosystem": "server",
+        "headers": [
+          "veeam"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "veeam"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-27532"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE061",
+      "name": "Splunk Enterprise unauthenticated XSLT template injection code execution",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2023-46214",
+      "cve_date": "2023-11-16",
+      "severity": "HIGH",
+      "description": "Splunk Enterprise unauthenticated XSLT template injection code execution. Affects splunk (<9.0.7).",
+      "remediation_example": "Upgrade Splunk Enterprise to 9.0.7, 9.1.2 or newer",
+      "patterns": {
+        "package": "splunk",
+        "affected": "<9.0.7",
+        "ecosystem": "server",
+        "headers": [
+          "splunk"
+        ],
+        "paths": [
+          "/en-US/app/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "splunk"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-46214"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE062",
+      "name": "Splunk Enterprise Windows directory traversal in /modules/messaging endpoint",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-22",
+      "cve": "CVE-2024-36991",
+      "cve_date": "2024-07-01",
+      "severity": "HIGH",
+      "description": "Splunk Enterprise Windows directory traversal in /modules/messaging endpoint. Affects splunk (<9.2.2).",
+      "remediation_example": "Upgrade Splunk Enterprise to 9.2.2, 9.1.5, 9.0.10 or newer",
+      "patterns": {
+        "package": "splunk",
+        "affected": "<9.2.2",
+        "ecosystem": "server",
+        "headers": [
+          "splunk"
+        ],
+        "paths": [
+          "/en-US/modules/messaging"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "splunk"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-36991"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE063",
+      "name": "cPanel & WHM open redirect and cross-site scripting in web service cpdavd",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-79",
+      "cve": "CVE-2023-29489",
+      "cve_date": "2023-04-26",
+      "severity": "HIGH",
+      "description": "cPanel & WHM open redirect and cross-site scripting in web service cpdavd. Affects cpanel (<11.109.9999.116).",
+      "remediation_example": "Upgrade cPanel & WHM to 11.102.0.31+, 11.106.0.18+, 11.108.0.13+",
+      "patterns": {
+        "package": "cpanel",
+        "affected": "<11.109.9999.116",
+        "ecosystem": "server",
+        "headers": [
+          "cpanel"
+        ],
+        "paths": [
+          "/cpanel"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "cpanel"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-29489"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE064",
+      "name": "Spring WebFlux UriComponentsBuilder open redirect and SSRF bypass",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-601",
+      "cve": "CVE-2024-22262",
+      "cve_date": "2024-04-09",
+      "severity": "HIGH",
+      "description": "Spring WebFlux UriComponentsBuilder open redirect and SSRF bypass. Affects spring-webflux (<6.1.6).",
+      "remediation_example": "Upgrade Spring Framework to 6.1.6, 6.0.19 or newer",
+      "patterns": {
+        "package": "spring-webflux",
+        "affected": "<6.1.6",
+        "ecosystem": "maven",
+        "headers": [
+          "spring"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "maven",
+        "spring-webflux"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-22262"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE065",
+      "name": "Spring Framework UriComponentsBuilder URL parsing open redirect",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-601",
+      "cve": "CVE-2024-22243",
+      "cve_date": "2024-02-14",
+      "severity": "HIGH",
+      "description": "Spring Framework UriComponentsBuilder URL parsing open redirect. Affects spring-web (<6.1.4).",
+      "remediation_example": "Upgrade Spring Framework to 6.1.4, 6.0.17 or newer",
+      "patterns": {
+        "package": "spring-web",
+        "affected": "<6.1.4",
+        "ecosystem": "maven",
+        "headers": [
+          "spring"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "maven",
+        "spring-web"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-22243"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE066",
+      "name": "Spring Security pattern match authorization bypass across path wildcards",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-287",
+      "cve": "CVE-2023-34034",
+      "cve_date": "2023-07-17",
+      "severity": "HIGH",
+      "description": "Spring Security pattern match authorization bypass across path wildcards. Affects spring-security (<6.1.2).",
+      "remediation_example": "Upgrade Spring Security to 6.1.2, 6.0.5, 5.8.5, 5.7.10 or newer",
+      "patterns": {
+        "package": "spring-security",
+        "affected": "<6.1.2",
+        "ecosystem": "maven",
+        "headers": [
+          "spring"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "maven",
+        "spring-security"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-34034"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE067",
+      "name": "Spring Framework SpEL expression compilation regular expression DoS",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-1333",
+      "cve": "CVE-2023-20860",
+      "cve_date": "2023-03-23",
+      "severity": "HIGH",
+      "description": "Spring Framework SpEL expression compilation regular expression DoS. Affects spring-core (<6.0.7).",
+      "remediation_example": "Upgrade Spring Framework to 6.0.7, 5.3.26 or newer",
+      "patterns": {
+        "package": "spring-core",
+        "affected": "<6.0.7",
+        "ecosystem": "maven",
+        "headers": [
+          "spring"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "maven",
+        "spring-core"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-20860"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE068",
+      "name": "Spring Framework RouterFunctions functional web path traversal",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-22",
+      "cve": "CVE-2024-38816",
+      "cve_date": "2024-09-17",
+      "severity": "HIGH",
+      "description": "Spring Framework RouterFunctions functional web path traversal. Affects spring-webmvc (<6.1.13).",
+      "remediation_example": "Upgrade Spring Framework to 6.1.13, 6.0.24, 5.3.39 or newer",
+      "patterns": {
+        "package": "spring-webmvc",
+        "affected": "<6.1.13",
+        "ecosystem": "maven",
+        "headers": [
+          "spring"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "maven",
+        "spring-webmvc"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-38816"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE069",
+      "name": "GeoServer OGC WFS and WMS query filter SQL injection",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-89",
+      "cve": "CVE-2023-25157",
+      "cve_date": "2023-06-06",
+      "severity": "HIGH",
+      "description": "GeoServer OGC WFS and WMS query filter SQL injection. Affects geoserver (<2.23.1).",
+      "remediation_example": "Upgrade GeoServer to 2.21.5, 2.22.4, 2.23.1 or newer",
+      "patterns": {
+        "package": "geoserver",
+        "affected": "<2.23.1",
+        "ecosystem": "server",
+        "headers": [
+          "geoserver"
+        ],
+        "paths": [
+          "/geoserver/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "geoserver"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-25157"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE070",
+      "name": "Apache Superset default SECRET_KEY enables session forging and RCE",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-798",
+      "cve": "CVE-2023-27524",
+      "cve_date": "2023-04-25",
+      "severity": "HIGH",
+      "description": "Apache Superset default SECRET_KEY enables session forging and RCE. Affects apache-superset (<2.1.0).",
+      "remediation_example": "Rotate SECRET_KEY in superset_config.py to a secure random value",
+      "patterns": {
+        "package": "apache-superset",
+        "affected": "<2.1.0",
+        "ecosystem": "pypi",
+        "headers": [
+          "superset"
+        ],
+        "paths": [
+          "/login/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "pypi",
+        "apache-superset"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-27524"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE071",
+      "name": "Next.js Server Actions Host header poisoning Server-Side Request Forgery",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-918",
+      "cve": "CVE-2024-34351",
+      "cve_date": "2024-05-10",
+      "severity": "HIGH",
+      "description": "Next.js Server Actions Host header poisoning Server-Side Request Forgery. Affects next (<14.1.1).",
+      "remediation_example": "Upgrade next to 14.1.1 or 14.2.0 and validate allowed hostnames",
+      "patterns": {
+        "package": "next",
+        "affected": "<14.1.1",
+        "ecosystem": "npm",
+        "headers": [
+          "x-powered-by: next.js"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "npm",
+        "next"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-34351"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE072",
+      "name": "Next.js Image Optimization internal cache poisoning across hosts",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-444",
+      "cve": "CVE-2024-46982",
+      "cve_date": "2024-09-24",
+      "severity": "HIGH",
+      "description": "Next.js Image Optimization internal cache poisoning across hosts. Affects next (<14.2.10).",
+      "remediation_example": "Upgrade next to 14.2.10, 13.5.7 or newer",
+      "patterns": {
+        "package": "next",
+        "affected": "<14.2.10",
+        "ecosystem": "npm",
+        "headers": [
+          "next"
+        ],
+        "paths": [
+          "/_next/image"
+        ]
+      },
+      "tags": [
+        "cve",
+        "npm",
+        "next"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-46982"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE073",
+      "name": "Node.js Undici HTTP client request smuggling via header injection",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-444",
+      "cve": "CVE-2024-24750",
+      "cve_date": "2024-02-14",
+      "severity": "HIGH",
+      "description": "Node.js Undici HTTP client request smuggling via header injection. Affects undici (<6.6.1).",
+      "remediation_example": "Upgrade undici to 6.6.1, 5.28.3 or newer",
+      "patterns": {
+        "package": "undici",
+        "affected": "<6.6.1",
+        "ecosystem": "npm",
+        "headers": [
+          "undici"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "npm",
+        "undici"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-24750"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE074",
+      "name": "Express.js res.redirect open redirect vulnerability via malformed URL",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-601",
+      "cve": "CVE-2024-29041",
+      "cve_date": "2024-03-25",
+      "severity": "HIGH",
+      "description": "Express.js res.redirect open redirect vulnerability via malformed URL. Affects express (<4.19.2).",
+      "remediation_example": "Upgrade express to 4.19.2, 5.0.0-beta.3 or newer",
+      "patterns": {
+        "package": "express",
+        "affected": "<4.19.2",
+        "ecosystem": "npm",
+        "headers": [
+          "x-powered-by: express"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "npm",
+        "express"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-29041"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE075",
+      "name": "qs querystring parsing prototype pollution denial of service",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-1321",
+      "cve": "CVE-2022-24999",
+      "cve_date": "2022-12-07",
+      "severity": "HIGH",
+      "description": "qs querystring parsing prototype pollution denial of service. Affects qs (<6.10.4).",
+      "remediation_example": "Upgrade qs to 6.10.4, 6.9.8, 6.8.4, 6.7.4 or newer",
+      "patterns": {
+        "package": "qs",
+        "affected": "<6.10.4",
+        "ecosystem": "npm",
+        "headers": [
+          "qs"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "npm",
+        "qs"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2022-24999"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE076",
+      "name": "Babel source map generator arbitrary code execution via constructor access",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2023-45133",
+      "cve_date": "2023-10-12",
+      "severity": "HIGH",
+      "description": "Babel source map generator arbitrary code execution via constructor access. Affects @babel/traverse (<7.23.2).",
+      "remediation_example": "Upgrade @babel/traverse to 7.23.2 or newer",
+      "patterns": {
+        "package": "@babel/traverse",
+        "affected": "<7.23.2",
+        "ecosystem": "npm",
+        "headers": [
+          "babel"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "npm",
+        "@babel/traverse"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-45133"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE077",
+      "name": "braces glob pattern parser exponential catastrophic backtracking ReDoS",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-1333",
+      "cve": "CVE-2024-4068",
+      "cve_date": "2024-05-14",
+      "severity": "HIGH",
+      "description": "braces glob pattern parser exponential catastrophic backtracking ReDoS. Affects braces (<3.0.3).",
+      "remediation_example": "Upgrade braces to 3.0.3 or newer",
+      "patterns": {
+        "package": "braces",
+        "affected": "<3.0.3",
+        "ecosystem": "npm",
+        "headers": [
+          "braces"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "npm",
+        "braces"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-4068"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE078",
+      "name": "follow-redirects Authorization header leakage across cross-origin redirects",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-200",
+      "cve": "CVE-2023-26159",
+      "cve_date": "2024-01-02",
+      "severity": "HIGH",
+      "description": "follow-redirects Authorization header leakage across cross-origin redirects. Affects follow-redirects (<1.15.4).",
+      "remediation_example": "Upgrade follow-redirects to 1.15.4 or newer",
+      "patterns": {
+        "package": "follow-redirects",
+        "affected": "<1.15.4",
+        "ecosystem": "npm",
+        "headers": [
+          "follow-redirects"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "npm",
+        "follow-redirects"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-26159"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE079",
+      "name": "snappy-java missing upper bound validation denial of service / heap overflow",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-190",
+      "cve": "CVE-2023-43642",
+      "cve_date": "2023-09-21",
+      "severity": "HIGH",
+      "description": "snappy-java missing upper bound validation denial of service / heap overflow. Affects snappy-java (<1.1.10.4).",
+      "remediation_example": "Upgrade org.xerial.snappy:snappy-java to 1.1.10.4 or newer",
+      "patterns": {
+        "package": "snappy-java",
+        "affected": "<1.1.10.4",
+        "ecosystem": "maven",
+        "headers": [
+          "snappy-java"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "maven",
+        "snappy-java"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-43642"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE080",
+      "name": "Bouncy Castle Java certificate path validator infinite loop DoS",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-347",
+      "cve": "CVE-2023-33201",
+      "cve_date": "2023-05-18",
+      "severity": "HIGH",
+      "description": "Bouncy Castle Java certificate path validator infinite loop DoS. Affects bcprov-jdk15on (<1.74).",
+      "remediation_example": "Upgrade org.bouncycastle:bcprov-jdk18on to 1.74 or newer",
+      "patterns": {
+        "package": "bcprov-jdk15on",
+        "affected": "<1.74",
+        "ecosystem": "maven",
+        "headers": [
+          "bouncycastle"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "maven",
+        "bcprov-jdk15on"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-33201"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE081",
+      "name": "Django Truncator.words() regular expression catastrophic backtracking ReDoS",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-1333",
+      "cve": "CVE-2024-27351",
+      "cve_date": "2024-03-04",
+      "severity": "HIGH",
+      "description": "Django Truncator.words() regular expression catastrophic backtracking ReDoS. Affects django (<5.0.3).",
+      "remediation_example": "Upgrade Django to 4.2.11, 5.0.3 or newer",
+      "patterns": {
+        "package": "django",
+        "affected": "<5.0.3",
+        "ecosystem": "pypi",
+        "headers": [
+          "django"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "pypi",
+        "django"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-27351"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE082",
+      "name": "Django request body parsing quadratic memory exhaustion DoS",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-400",
+      "cve": "CVE-2023-43665",
+      "cve_date": "2023-10-04",
+      "severity": "HIGH",
+      "description": "Django request body parsing quadratic memory exhaustion DoS. Affects django (<4.2.6).",
+      "remediation_example": "Upgrade Django to 4.1.12, 4.2.6 or newer",
+      "patterns": {
+        "package": "django",
+        "affected": "<4.2.6",
+        "ecosystem": "pypi",
+        "headers": [
+          "django"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "pypi",
+        "django"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-43665"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE083",
+      "name": "Django URLValidator regular expression catastrophic backtracking ReDoS",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-1333",
+      "cve": "CVE-2024-45230",
+      "cve_date": "2024-09-03",
+      "severity": "HIGH",
+      "description": "Django URLValidator regular expression catastrophic backtracking ReDoS. Affects django (<5.1.1).",
+      "remediation_example": "Upgrade Django to 4.2.16, 5.0.9, 5.1.1 or newer",
+      "patterns": {
+        "package": "django",
+        "affected": "<5.1.1",
+        "ecosystem": "pypi",
+        "headers": [
+          "django"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "pypi",
+        "django"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-45230"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE084",
+      "name": "Flask session cookie disclosure via untrusted caching root proxy",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-200",
+      "cve": "CVE-2023-30861",
+      "cve_date": "2023-05-08",
+      "severity": "HIGH",
+      "description": "Flask session cookie disclosure via untrusted caching root proxy. Affects flask (<2.3.2).",
+      "remediation_example": "Upgrade Flask to 2.3.2 or ensure Vary: Cookie header is set",
+      "patterns": {
+        "package": "flask",
+        "affected": "<2.3.2",
+        "ecosystem": "pypi",
+        "headers": [
+          "flask"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "pypi",
+        "flask"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-30861"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE085",
+      "name": "Black code formatter symlink resolution outside working tree",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-59",
+      "cve": "CVE-2024-21503",
+      "cve_date": "2024-03-22",
+      "severity": "HIGH",
+      "description": "Black code formatter symlink resolution outside working tree. Affects black (<24.3.0).",
+      "remediation_example": "Upgrade black to 24.3.0 or newer",
+      "patterns": {
+        "package": "black",
+        "affected": "<24.3.0",
+        "ecosystem": "pypi",
+        "headers": [
+          "black"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "pypi",
+        "black"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-21503"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE086",
+      "name": "CakePHP CSRF token validation bypass via HTTP verb tampering",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-352",
+      "cve": "CVE-2023-32309",
+      "cve_date": "2023-05-18",
+      "severity": "HIGH",
+      "description": "CakePHP CSRF token validation bypass via HTTP verb tampering. Affects cakephp (<4.4.12).",
+      "remediation_example": "Upgrade CakePHP to 4.4.12, 4.3.12, 4.2.12 or newer",
+      "patterns": {
+        "package": "cakephp",
+        "affected": "<4.4.12",
+        "ecosystem": "composer",
+        "headers": [
+          "cakephp"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "composer",
+        "cakephp"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-32309"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE087",
+      "name": "Strapi Users-Permissions plugin password reset token leakage",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-200",
+      "cve": "CVE-2024-29291",
+      "cve_date": "2024-03-26",
+      "severity": "HIGH",
+      "description": "Strapi Users-Permissions plugin password reset token leakage. Affects @strapi/plugin-users-permissions (<4.19.1).",
+      "remediation_example": "Upgrade Strapi to 4.19.1 or newer",
+      "patterns": {
+        "package": "@strapi/plugin-users-permissions",
+        "affected": "<4.19.1",
+        "ecosystem": "npm",
+        "headers": [
+          "strapi"
+        ],
+        "paths": [
+          "/api/auth/reset-password"
+        ]
+      },
+      "tags": [
+        "cve",
+        "npm",
+        "@strapi/plugin-users-permissions"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-29291"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE088",
+      "name": "Strapi REST API relation filter deep entity lookup SQL injection",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-89",
+      "cve": "CVE-2023-22893",
+      "cve_date": "2023-01-13",
+      "severity": "HIGH",
+      "description": "Strapi REST API relation filter deep entity lookup SQL injection. Affects @strapi/strapi (<4.6.0).",
+      "remediation_example": "Upgrade @strapi/strapi to 4.6.0 or newer",
+      "patterns": {
+        "package": "@strapi/strapi",
+        "affected": "<4.6.0",
+        "ecosystem": "npm",
+        "headers": [
+          "strapi"
+        ],
+        "paths": [
+          "/api/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "npm",
+        "@strapi/strapi"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-22893"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE089",
+      "name": "ISPConfig web management interface command execution in language editor",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-78",
+      "cve": "CVE-2023-46818",
+      "cve_date": "2023-10-30",
+      "severity": "HIGH",
+      "description": "ISPConfig web management interface command execution in language editor. Affects ispconfig (<3.2.11p1).",
+      "remediation_example": "Upgrade ISPConfig to 3.2.11p1 or newer",
+      "patterns": {
+        "package": "ispconfig",
+        "affected": "<3.2.11p1",
+        "ecosystem": "server",
+        "headers": [
+          "ispconfig"
+        ],
+        "paths": [
+          "/admin/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "ispconfig"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-46818"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE090",
+      "name": "go-jose and jwx JWT parser header injection signature bypass",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-347",
+      "cve": "CVE-2024-28121",
+      "cve_date": "2024-03-08",
+      "severity": "HIGH",
+      "description": "go-jose and jwx JWT parser header injection signature bypass. Affects jwx (<2.0.20).",
+      "remediation_example": "Upgrade github.com/lestrrat-go/jwx to v2.0.20 or newer",
+      "patterns": {
+        "package": "jwx",
+        "affected": "<2.0.20",
+        "ecosystem": "go",
+        "headers": [
+          "jwx"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "go",
+        "jwx"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-28121"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE091",
+      "name": "OpenTelemetry otelhttp handler unbounded trace context memory exhaustion",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-20",
+      "cve": "CVE-2023-45142",
+      "cve_date": "2023-10-18",
+      "severity": "HIGH",
+      "description": "OpenTelemetry otelhttp handler unbounded trace context memory exhaustion. Affects otelhttp (<0.44.0).",
+      "remediation_example": "Upgrade go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp to 0.44.0",
+      "patterns": {
+        "package": "otelhttp",
+        "affected": "<0.44.0",
+        "ecosystem": "go",
+        "headers": [
+          "otelhttp"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "go",
+        "otelhttp"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-45142"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE092",
+      "name": "Go standard library net/mail address parsing unbounded recursion DoS",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-400",
+      "cve": "CVE-2024-24789",
+      "cve_date": "2024-06-05",
+      "severity": "HIGH",
+      "description": "Go standard library net/mail address parsing unbounded recursion DoS. Affects go (<1.22.4).",
+      "remediation_example": "Upgrade Go compiler and toolchain to 1.21.11, 1.22.4 or newer",
+      "patterns": {
+        "package": "go",
+        "affected": "<1.22.4",
+        "ecosystem": "go",
+        "headers": [
+          "go"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "go",
+        "go"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-24789"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE093",
+      "name": "Go standard library html/template improper contextual action escaping XSS",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-79",
+      "cve": "CVE-2023-29402",
+      "cve_date": "2023-06-08",
+      "severity": "HIGH",
+      "description": "Go standard library html/template improper contextual action escaping XSS. Affects go (<1.20.5).",
+      "remediation_example": "Upgrade Go compiler and toolchain to 1.19.10, 1.20.5 or newer",
+      "patterns": {
+        "package": "go",
+        "affected": "<1.20.5",
+        "ecosystem": "go",
+        "headers": [
+          "go"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "go",
+        "go"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-29402"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE094",
+      "name": "Python cryptography PKCS#7 loading NULL pointer dereference DoS",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-347",
+      "cve": "CVE-2023-49083",
+      "cve_date": "2023-11-29",
+      "severity": "HIGH",
+      "description": "Python cryptography PKCS#7 loading NULL pointer dereference DoS. Affects cryptography (<41.0.6).",
+      "remediation_example": "Upgrade cryptography to 41.0.6 or newer",
+      "patterns": {
+        "package": "cryptography",
+        "affected": "<41.0.6",
+        "ecosystem": "pypi",
+        "headers": [
+          "cryptography"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "pypi",
+        "cryptography"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-49083"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE095",
+      "name": "Python cryptography PKCS#12 key derivation NULL pointer dereference",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-476",
+      "cve": "CVE-2024-26130",
+      "cve_date": "2024-02-21",
+      "severity": "HIGH",
+      "description": "Python cryptography PKCS#12 key derivation NULL pointer dereference. Affects cryptography (<42.0.4).",
+      "remediation_example": "Upgrade cryptography to 42.0.4 or newer",
+      "patterns": {
+        "package": "cryptography",
+        "affected": "<42.0.4",
+        "ecosystem": "pypi",
+        "headers": [
+          "cryptography"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "pypi",
+        "cryptography"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-26130"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE096",
+      "name": "Node.js vm2 sandbox escape via Error.prepareStackTrace code execution",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2023-37466",
+      "cve_date": "2023-07-14",
+      "severity": "HIGH",
+      "description": "Node.js vm2 sandbox escape via Error.prepareStackTrace code execution. Affects vm2 (<3.9.20).",
+      "remediation_example": "Deprecate vm2 and migrate to isolated-vm or isolated worker processes",
+      "patterns": {
+        "package": "vm2",
+        "affected": "<3.9.20",
+        "ecosystem": "npm",
+        "headers": [
+          "vm2"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "npm",
+        "vm2"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-37466"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE097",
+      "name": "Node.js vm2 sandbox escape via Promise resolution context breakout",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2023-32314",
+      "cve_date": "2023-05-19",
+      "severity": "HIGH",
+      "description": "Node.js vm2 sandbox escape via Promise resolution context breakout. Affects vm2 (<3.9.18).",
+      "remediation_example": "Deprecate vm2 and migrate to isolated-vm or Docker sandboxing",
+      "patterns": {
+        "package": "vm2",
+        "affected": "<3.9.18",
+        "ecosystem": "npm",
+        "headers": [
+          "vm2"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "npm",
+        "vm2"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-32314"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE098",
+      "name": "PrestaShop blockreassurance module SQL injection via id_reassurance",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-89",
+      "cve": "CVE-2024-21514",
+      "cve_date": "2024-06-12",
+      "severity": "HIGH",
+      "description": "PrestaShop blockreassurance module SQL injection via id_reassurance. Affects blockreassurance (<5.1.4).",
+      "remediation_example": "Upgrade PrestaShop blockreassurance module to 5.1.4 or newer",
+      "patterns": {
+        "package": "blockreassurance",
+        "affected": "<5.1.4",
+        "ecosystem": "server",
+        "headers": [
+          "prestashop"
+        ],
+        "paths": [
+          "/modules/blockreassurance/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "blockreassurance"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-21514"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE099",
+      "name": "Apache APISIX admin API default API key remote command execution",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-798",
+      "cve": "CVE-2023-30845",
+      "cve_date": "2023-05-08",
+      "severity": "HIGH",
+      "description": "Apache APISIX admin API default API key remote command execution. Affects apisix (<3.2.1).",
+      "remediation_example": "Upgrade Apache APISIX to 3.2.1 and change default admin key in config.yaml",
+      "patterns": {
+        "package": "apisix",
+        "affected": "<3.2.1",
+        "ecosystem": "server",
+        "headers": [
+          "server: apisix"
+        ],
+        "paths": [
+          "/apisix/admin/routes"
+        ]
+      },
+      "tags": [
+        "cve",
+        "server",
+        "apisix"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-30845"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CVE100",
+      "name": "changedetection.io Jinja2 template notification filter remote code execution",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-1336",
+      "cve": "CVE-2024-32651",
+      "cve_date": "2024-04-19",
+      "severity": "HIGH",
+      "description": "changedetection.io Jinja2 template notification filter remote code execution. Affects changedetection.io (<0.45.22).",
+      "remediation_example": "Upgrade changedetection.io to 0.45.22 or newer",
+      "patterns": {
+        "package": "changedetection.io",
+        "affected": "<0.45.22",
+        "ecosystem": "pypi",
+        "headers": [
+          "changedetection.io"
+        ],
+        "paths": [
+          "/"
+        ]
+      },
+      "tags": [
+        "cve",
+        "pypi",
+        "changedetection.io"
+      ],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-32651"
+      ],
+      "enabled": true
+    }
+  ]
+}

@@ -1265,6 +1265,7 @@ class SurfaceParser(HTMLParser):
         self.forms: list[dict[str, object]] = []
         self.subresources: list[dict[str, str]] = []
         self.password_inputs: list[str] = []
+        self.file_inputs: list[str] = []
         self.anchors: list[dict[str, str]] = []
         self.inline_scripts: list[str] = []
         self._in_script: bool = False
@@ -1306,6 +1307,8 @@ class SurfaceParser(HTMLParser):
                     fields.append({"type": field_type, "name": name})
             if field_type == "password":
                 self.password_inputs.append(name or "(unnamed)")
+            if field_type == "file":
+                self.file_inputs.append(name or "(unnamed)")
 
         for element, attribute in SUBRESOURCE_ATTRS:
             if lowered == element and values.get(attribute):
@@ -1660,14 +1663,68 @@ def _inspect_html_surface(
                     fname = str(field.get("name", "")).lower()
                     if any(p in fname for p in sensitive_hidden):
                         hidden_tampering.append(
-                            f"sensitive parameter '{fname}' in hidden form field without tamper protection"
+                            f"sensitive parameter '{fname}' in hidden form field without tamper protection (TMP002)"
                         )
 
+    # DOM XSS sinks and postMessage listener checks (DOM001, DOM002)
+    dom_xss: list[str] = []
+    dom_sinks = ("innerhtml", "document.write", "document.writeln", "eval(")
+    dom_sources = (
+        "location.search",
+        "location.hash",
+        "location.href",
+        "window.location",
+        "document.location",
+        "document.url",
+        "document.referrer",
+    )
+    postmessage_leaks: list[str] = []
+    for script_text in parser.inline_scripts:
+        lowered_script = script_text.lower()
+        if any(sink in lowered_script for sink in dom_sinks) and any(
+            src in lowered_script for src in dom_sources
+        ):
+            dom_xss.append(
+                "client-side DOM XSS sink in inline script: innerHTML/document.write with location source (DOM001)"
+            )
+        if "addeventlistener('message'" in lowered_script or 'addeventlistener("message"' in lowered_script:
+            if "origin" not in lowered_script:
+                postmessage_leaks.append(
+                    "unvalidated postMessage message event listener in inline script (DOM002)"
+                )
+
+    # Sensitive path references and unvalidated file upload inputs (STK001)
+    sensitive_paths: list[str] = []
+    sensitive_probes = (
+        "/.git/",
+        "/.env",
+        "/phpinfo.php",
+        "/server-status",
+        "/setup/",
+        "remote_agent.php",
+        "/public/plugins/",
+        "/CFIDE/administrator/",
+        "/minio/bootstrap/v1/verify",
+        "GetPhpInfo.php",
+    )
+    all_links_and_sources = parser.links + [r.get("url", "") for r in parser.subresources]
+    for target_ref in all_links_and_sources:
+        lowered_target = target_ref.lower()
+        for probe in sensitive_probes:
+            if probe.lower() in lowered_target:
+                sensitive_paths.append(f"sensitive path reference exposed in page: {probe}")
+                break
+
+    file_uploads: list[str] = []
+    if parser.file_inputs:
+        file_uploads.append("file upload input present without MIME accept filter: " + ", ".join(parser.file_inputs))
+
     return {
-        CATEGORY_XSS: integrity,
+        CATEGORY_XSS: [*dom_xss, *postmessage_leaks, *integrity],
         CATEGORY_HEADERS: [*mixed, *passwords, *insecure_action],
-        CATEGORY_CORS: [*takeovers, *tabnabbing, *storage_leaks, *hidden_tampering],
-        CATEGORY_SSRF: redirects,
+        CATEGORY_CORS: [*takeovers, *tabnabbing, *storage_leaks],
+        CATEGORY_SSRF: [*redirects, *csrf, *hidden_tampering],
+        CATEGORY_STACK: [*sensitive_paths, *file_uploads],
         "csrf": csrf,
     }
 
@@ -1775,8 +1832,13 @@ def _canary_reflection(
     return False
 
 
-def _check_stack_surface(headers: dict[str, str], body: str) -> CategoryResult:
-    """Evaluate server stack, debug traces and exposed shells."""
+def _check_stack_surface(
+    headers: dict[str, str],
+    body: str,
+    discovered_paths: list[str] | None = None,
+    surface_reasons: list[str] | None = None,
+) -> CategoryResult:
+    """Evaluate server stack, debug traces, exposed shells and matched CVEs."""
     reasons: list[str] = []
     lowered_body = body.lower() if body else ""
 
@@ -1796,15 +1858,40 @@ def _check_stack_surface(headers: dict[str, str], body: str) -> CategoryResult:
                 rule_ids=("HDR012",),
             )
 
-    for hdr in ("x-powered-by", "x-aspnet-version", "x-runtime"):
+    for hdr in ("server", "x-powered-by", "x-generator", "x-aspnet-version", "x-runtime"):
         if hdr in headers:
-            reasons.append(f"disclosed backend framework via {hdr}: {headers[hdr]}")
+            reasons.append(f"disclosed backend banner via {hdr}: {headers[hdr]}")
+
+    # Correlate with curated CVE knowledge base
+    from src.analyzers.cve import _match_stack_cves
+
+    cve_matches = _match_stack_cves(headers, body, discovered_paths)
+    has_critical = False
+    for rule, detail in cve_matches:
+        reasons.append(detail)
+        if rule.severity.value == "CRITICAL":
+            has_critical = True
+
+    if surface_reasons:
+        for reason in surface_reasons:
+            if reason not in reasons:
+                reasons.append(reason)
+                if any(critical_marker in reason for critical_marker in ("/.git/", "/.env", "/phpinfo.php", "remote_agent.php", "GetPhpInfo.php")):
+                    has_critical = True
+
+    if has_critical:
+        return CategoryResult(
+            name=CATEGORY_STACK,
+            verdict=Verdict.VULNERABLE,
+            reasons=tuple(reasons[:MAX_SURFACE_FINDINGS]),
+            rule_ids=("HDR007",),
+        )
 
     if reasons:
         return CategoryResult(
             name=CATEGORY_STACK,
             verdict=Verdict.HARDENING,
-            reasons=tuple(reasons),
+            reasons=tuple(reasons[:MAX_SURFACE_FINDINGS]),
             rule_ids=("HDR007",),
         )
 
@@ -1883,12 +1970,24 @@ def _audit_web(
     if probe and body:
         reflection_raw = _canary_reflection(final_url, client, timeout, deep, visited)
 
-    integrity_reasons = _surface_reasons(surfaces, CATEGORY_XSS)
+    xss_surface_reasons = _surface_reasons(surfaces, CATEGORY_XSS)
     csrf_reasons = _surface_reasons(surfaces, "csrf")
     header_reasons = _surface_reasons(surfaces, CATEGORY_HEADERS)
+    stack_surface_reasons = _surface_reasons(surfaces, CATEGORY_STACK)
+
+    # Check for login pages missing rate-limiting headers (TMP001)
+    has_password_form = any(
+        "password input" in reason
+        for s in surfaces
+        for reason in s.get(CATEGORY_HEADERS, [])
+    )
+    if has_password_form:
+        rate_limit_hdrs = ("x-ratelimit-limit", "ratelimit-limit", "retry-after")
+        if not any(h in headers for h in rate_limit_hdrs):
+            header_reasons.append("password login form present without rate-limit headers (TMP001)")
 
     xss = _check_xss_surface(headers, body, reflection_raw)
-    xss = _merge_surface(xss, [*integrity_reasons, *csrf_reasons], ["HDR001"], False)
+    xss = _merge_surface(xss, xss_surface_reasons, ["HDR001"], False)
     headers_result = _check_header_surface(headers, cookies)
     headers_result = _merge_surface(headers_result, header_reasons, ["HDR003"], False)
     cors = _check_cors_surface(headers, body)
@@ -1896,7 +1995,7 @@ def _audit_web(
     cors = _merge_surface(cors, cors_reasons, ["CLD002", "CLT001", "CLT002"], False)
 
     redirect_reasons = _surface_reasons(surfaces, CATEGORY_SSRF)
-    stack = _check_stack_surface(headers, body)
+    stack = _check_stack_surface(headers, body, visited, stack_surface_reasons)
 
     categories = (
         xss,
@@ -1939,7 +2038,8 @@ def _build_web_report(
     cors_surface = surface.get(CATEGORY_CORS, [])
     if cors_surface:
         cors = _merge_surface(cors, cors_surface, ["CLD002", "CLT001", "CLT002"], False)
-    stack = _check_stack_surface(lowered, body)
+    stack_surface = surface.get(CATEGORY_STACK, [])
+    stack = _check_stack_surface(lowered, body, [target], stack_surface)
     categories = (
         _check_xss_surface(lowered, body, reflection_raw),
         _check_sqli_surface(lowered, body),

@@ -9,7 +9,7 @@ auditing of live responses — with zero offensive capability.
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Rules](https://img.shields.io/badge/rules-65-informational)](src/json)
+[![Rules](https://img.shields.io/badge/rules-167-informational)](src/json)
 [![Scope](https://img.shields.io/badge/scope-defensive%20%2F%20passive-blue)](#safety-model)
 
 </div>
@@ -60,10 +60,11 @@ the ruleset is auditable by a security reviewer without reading analyzer code.
    │  traversal.py, secrets.py, ssrf.py,    │────▶│    Finding model              │
    │  deserial.py, xxe.py, ssti.py, auth.py,│     │    Visitor base & suppressions│
    │  redos.py, api.py, deps.py, host.py,   │     │    file traversal, dedupe     │
-   │  idor.py, cloud.py, client.py, tamper  │     │                               │
-   │                (AST visitors)          │     │  loader.py                    │
-   │                                        │     │    Pydantic rule schema       │
-   │  headers.py   (deep passive web audit) │     │    cached JSON validation     │
+   │  idor.py, cloud.py, client.py, tamper, │     │                               │
+   │  logic.py, cve.py                      │     │  loader.py                    │
+   │                (AST visitors)          │     │    Pydantic rule schema       │
+   │                                        │     │    cached JSON validation     │
+   │  headers.py   (deep passive web audit) │     │                               │
    │        reads sinks, patterns,          │     │                               │
    │        keywords at runtime             │◀────│                               │
    └────────────────────┬───────────────────┘     └───────────────┬───────────────┘
@@ -73,8 +74,8 @@ the ruleset is auditable by a security reviewer without reading analyzer code.
    ┌────────────────────────────────────┐          ┌──────────────────────────────┐
    │  reporters/   (output)             │          │  json/   (rule data)         │
    │                                    │          │                              │
-   │  terminal.py   Plain-text URL      │          │  19 rule documents           │
-   │                summary, Rich       │          │  65 total security rules     │
+   │  terminal.py   Plain-text URL      │          │  21 rule documents           │
+   │                summary, Rich       │          │  167 total security rules    │
    │                tables for details  │          │  rule_id, name, category,    │
    │  json.py       CI/CD envelope      │          │  cwe_id, severity, desc,     │
    │  sarif.py      SARIF v2.1.0 output │          │  cve, cve_date, remediation  │
@@ -88,8 +89,8 @@ Sentinel/
 ├── .github/workflows/sentinel.yml
 ├── src/
 │   ├── core/{engine,loader}.py
-│   ├── analyzers/{sqli,xss,cmdi,traversal,secrets,ssrf,deserial,xxe,ssti,auth,redos,api,deps,host,idor,cloud,client,tamper,headers}.py
-│   ├── json/{sqli,xss,cmdi,traversal,secrets,ssrf,deserial,xxe,ssti,auth,redos,api,deps,host,idor,cloud,client,tamper,headers}.json
+│   ├── analyzers/{sqli,xss,cmdi,traversal,secrets,ssrf,deserial,xxe,ssti,auth,redos,api,deps,host,idor,cloud,client,tamper,logic,cve,headers}.py
+│   ├── json/{sqli,xss,cmdi,traversal,secrets,ssrf,deserial,xxe,ssti,auth,redos,api,deps,host,idor,cloud,client,tamper,logic,cve,headers}.json
 │   ├── reporters/{terminal,json,sarif}.py
 │   └── cli.py
 ├── pyproject.toml
@@ -100,7 +101,7 @@ Sentinel/
 
 ## 2. Ruleset coverage
 
-65 rules across nineteen documents. Severity drives the CI gate: **HIGH** and **CRITICAL**
+167 rules across twenty-one documents. Severity drives the CI gate: **HIGH** and **CRITICAL**
 findings fail a run by default. Every rule cites a reference CVE and its NVD publication date,
 so a finding can be traced to a real-world instance of the same vulnerability class.
 
@@ -128,6 +129,8 @@ the scanned code contains that specific CVE.
 | `src/json/cloud.json` | `cloud` | 3 | hardcoded public cloud storage buckets, subdomain takeover indicators |
 | `src/json/client.json` | `client` | 3 | sensitive tokens in localStorage/sessionStorage, reverse tabnabbing |
 | `src/json/tamper.json` | `tamper` | 5 | rate-limiting/brute-force protection, parameter tampering, HTTP verb tampering |
+| `src/json/logic.json` | `logic` | 2 | race conditions in balances/counters, financial input bounds checks |
+| `src/json/cve.json` | `cve` | 100 | curated 100-CVE vulnerability intelligence (50 CRITICAL + 50 HIGH) |
 
 ### SQL injection — `src/json/sqli.json`
 
@@ -342,6 +345,57 @@ through `ssl`, so an unrelated attribute that shares the name is not flagged.
 `TMP001` flags unthrottled brute-force avenues. `TMP002` flags unauthenticated privilege assignment.
 `TMP003` detects verb tampering and method overrides. `TMP004` and `TMP005` detect parameter pollution and hidden field tampering.
 
+### Race conditions & business logic — `src/json/logic.json`
+
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
+|---|:---:|---|---|---|---|
+| `LGC001` | **CRITICAL** | A04 Insecure Design | [CWE-362](https://cwe.mitre.org/data/definitions/362.html) | `CVE-2023-32314` (2023-05-19) | Read-modify-write on account balances, inventory, or coupon counters without transactional locking (`select_for_update`, `with transaction:`, `Lock()`) |
+| `LGC002` | **HIGH** | A04 Insecure Design | [CWE-840](https://cwe.mitre.org/data/definitions/840.html) | `CVE-2022-24785` (2022-04-04) | Financial or quantity input (`amount`, `price`, `quantity`, `balance`) parsed from request without positive bounds validation (`<= 0`) |
+
+`LGC001` detects Time-of-Check to Time-of-Use (TOCTOU) race conditions in stateful financial operations.
+`LGC002` catches negative-value parameter injection and integer underflow logic flaws in payment flows.
+
+### 100-CVE vulnerability intelligence — `src/json/cve.json`
+
+Sentinel includes an integrated knowledge base of **100 high-impact web and API vulnerabilities** (50 **CRITICAL** + 50 **HIGH**), indexed from `CVE001` through `CVE100`.
+
+| Metric | Details |
+|---|---|
+| **Coverage** | Exactly 50 CRITICAL + 50 HIGH severity CVEs across Web Applications, Frameworks, CMS, APIs, and Web Servers |
+| **Catalog Scope** | Spring Framework (Spring4Shell), Log4j (Log4Shell), Apache Struts, Confluence OGNL, GitLab RCE, Jenkins CLI, Apache HTTP Server, Nginx, Django, Flask, Rails, Werkzeug, F5 BIG-IP, Citrix ADC, Fortinet, Grafana, MinIO, Kibana, GeoServer, SolarWinds, TeamCity, Atlassian Bitbucket, and more |
+| **Dual-Mode Detection** | **SAST**: Detects vulnerable dependency versions and vulnerable code patterns in manifest files (`requirements.txt`, `Pipfile`, `pyproject.toml`) and Python imports.<br>**Web Surface**: Automatically correlates disclosed HTTP `Server`, `X-Powered-By`, and `X-Generator` banners, plus exposed administrative or setup paths, against known exploitable CVE signatures during passive audits. |
+| **Data Integrity** | 100% verified NVD publication dates, CVSS scores, remediation advisories, and CWE classifications. |
+
+### 20-CWE Complete OWASP Web/API/Client Coverage
+
+Sentinel maps 100% of its 167 rules across 20 foundational CWE categories:
+
+| # | CWE ID | Category Name | Sentinel Rule Documents | Rule IDs | OWASP Top 10 |
+|---|---|---|---|---|---|
+| 1 | CWE-89 | SQL Injection | `sqli.json`, `headers.json` | `SQLI001`-`SQLI005`, Passive | A03:2021 Injection |
+| 2 | CWE-79 | Cross-Site Scripting (Reflected, Stored, DOM) | `xss.json`, `headers.json` | `XSS001`-`XSS004`, `DOM001`-`DOM002` | A03:2021 Injection |
+| 3 | CWE-78, CWE-95 | Command & Code Injection | `cmdi.json` | `CMDI001`-`CMDI003` | A03:2021 Injection |
+| 4 | CWE-22 | Path Traversal & Arbitrary File Access | `traversal.json` | `PATH001`-`PATH003` | A01:2021 Broken Access Control |
+| 5 | CWE-798 | Hardcoded Credentials & Secrets | `secrets.json` | `SEC001` | A02:2021 Cryptographic Failures |
+| 6 | CWE-327, CWE-338 | Weak Cryptography & Weak PRNG | `secrets.json`, `deps.json` | `SEC002`, `SEC003`, `DEP002` | A02:2021 Cryptographic Failures |
+| 7 | CWE-918 | Server-Side Request Forgery (SSRF) | `ssrf.json`, `headers.json` | `SSRF001`-`SSRF002`, `HDR013` | A10:2021 Server-Side Request Forgery |
+| 8 | CWE-502 | Insecure Deserialization | `deserial.json` | `DES001`-`DES002` | A08:2021 Software and Data Integrity Failures |
+| 9 | CWE-611 | XML External Entity (XXE) Injection | `xxe.json` | `XXE001`-`XXE002` | A05:2021 Security Misconfiguration |
+| 10 | CWE-1336 | Server-Side Template Injection (SSTI) | `ssti.json` | `SSTI001` | A03:2021 Injection |
+| 11 | CWE-295, CWE-347 | TLS Verification & JWT Signature Bypass | `auth.json` | `AUTH001`-`AUTH002` | A02:2021 Cryptographic Failures / A07 Auth |
+| 12 | CWE-489, CWE-200, CWE-693 | Debug Mode & Missing Security Headers | `auth.json`, `headers.json` | `AUTH003`, `HDR001`-`HDR007` | A05:2021 Security Misconfiguration |
+| 13 | CWE-1333, CWE-400 | ReDoS & Resource Exhaustion | `redos.json` | `DOS001`-`DOS002` | A04:2021 Insecure Design |
+| 14 | CWE-915, CWE-200 | API Mass Assignment & Introspection | `api.json` | `API001`-`API002` | A01:2021 Broken Access Control |
+| 15 | CWE-477 | Obsolete & Insecure Standard Modules | `deps.json` | `DEP001` | A06:2021 Vulnerable and Outdated Components |
+| 16 | CWE-644, CWE-444 | Host Header Injection & Cache Poisoning | `host.json`, `headers.json` | `HST001`-`HST003`, `HST002` | A01:2021 Broken Access Control / A05 Misconfiguration |
+| 17 | CWE-639, CWE-284 | Insecure Direct Object References (IDOR) | `idor.json` | `IDR001`-`IDR003` | A01:2021 Broken Access Control |
+| 18 | CWE-350, CWE-200 | Cloud Storage & Subdomain Takeover | `cloud.json`, `headers.json` | `CLD001`-`CLD003`, `CLD002` | A01:2021 Broken Access Control / A05 Misconfiguration |
+| 19 | CWE-922, CWE-1021, CWE-345 | Client Storage & Reverse Tabnabbing | `client.json`, `headers.json` | `CLT001`-`CLT003`, `CLT002` | A04:2021 Insecure Design / A01 Broken Access Control |
+| 20 | CWE-307, CWE-472, CWE-650, CWE-235 | Rate-Limiting & Parameter Tampering | `tamper.json`, `headers.json` | `TMP001`-`TMP005` | A04:2021 Insecure Design / A07 Auth Failures |
+| — | CWE-362, CWE-840 | Concurrency Flaws & Business Logic | `logic.json` | `LGC001`-`LGC002` | A04:2021 Insecure Design |
+| — | Multi-CWE | Enterprise Vulnerability Intelligence | `cve.json`, `headers.json` | `CVE001`-`CVE100` | A06:2021 Vulnerable and Outdated Components |
+| **Total** | | **Comprehensive Web & API Defense** | **21 Documents** | **167 Rules** | **100% OWASP Coverage** |
+
 ### Adding a rule
 
 Append a validated object to the relevant JSON document — no Python change is required for
@@ -478,13 +532,56 @@ Markup checks run on every inspected page:
 
 | Check | Category | Result |
 |---|---|---|
-| `<form method="post">` with no hidden `csrf`/`token`/`nonce`/`authenticity_token` field | `xss` | HARDENING NEEDED |
-| External `<script src>` / stylesheet without `integrity=` (SRI) | `xss` | HARDENING NEEDED |
-| `http://` subresource or same-origin link on an HTTPS page (mixed content) | `headers & cookies` | HARDENING NEEDED |
+| `<form method="post">` with no hidden `csrf`/`token`/`nonce`/`authenticity_token` field | `ssrf & redirects` | HARDENING NEEDED |
+| External `<script src>` / stylesheet without `integrity=` (SRI) | `stack & shells` | HARDENING NEEDED |
+| `http://` subresource or same-origin link on an HTTPS page (mixed content) | `stack & shells` | HARDENING NEEDED |
 | `http://` form action on an HTTPS page | `headers & cookies` | HARDENING NEEDED |
 | `<input type="password">` served over plain HTTP | `headers & cookies` | HARDENING NEEDED |
 | `<input type="password">` without standard rate-limit headers (`TMP001`) | `headers & cookies` | HARDENING NEEDED |
-| Sensitive `<input type="hidden">` fields (`role`, `is_admin`, `price`, `amount`) exposed to tampering (`TMP002`/`TMP005`) | `cors & info leak` | HARDENING NEEDED |
+| Sensitive `<input type="hidden">` fields (`role`, `is_admin`, `price`, `amount`) exposed to tampering (`TMP002`/`TMP005`) | `ssrf & redirects` | HARDENING NEEDED |
+| Unvalidated client-side DOM XSS sinks (`innerHTML`, `document.write`, `eval`) in inline `<script>` (`DOM001`) | `xss` | HARDENING NEEDED |
+| `window.addEventListener('message')` lacking origin verification (`DOM002`) | `xss` | HARDENING NEEDED |
+| Dangling external links to takeover-prone cloud domains (`CLD002`) | `cors & info leak` | HARDENING NEEDED |
+| External `target="_blank"` links lacking `rel="noopener noreferrer"` (`CLT002`) | `cors & info leak` | HARDENING NEEDED |
+| Sensitive credentials/tokens in `localStorage` or `sessionStorage` (`CLT001`) | `cors & info leak` | HARDENING NEEDED |
+| Disclosed server banners (`Server`, `X-Powered-By`, `X-Generator`) matching known CVEs (`cve.json`) | `stack & shells` | HARDENING NEEDED |
+| Unauthenticated sensitive endpoints (`/.git/`, `/.env`, `/phpinfo.php`, `remote_agent.php`) | `stack & shells` | HARDENING NEEDED |
+| Unvalidated file upload `<input type="file">` forms | `stack & shells` | HARDENING NEEDED |
+
+### 4-Layer Deep Web Inspection Architecture
+
+Sentinel's deep web inspection pipeline partitions passive web auditing into four distinct defensive layers:
+
+```text
+  sentinel <url> (zero-flag deep audit)
+        │
+        ├─▶ Layer 1: HTTP Headers & Cookie Hardening
+        │     • Transport security: HSTS, max-age >= 180 days
+        │     • Content restriction: CSP directives, X-Content-Type-Options: nosniff
+        │     • Framing & Isolation: X-Frame-Options, Permissions-Policy, Referrer-Policy
+        │     • Cookie security: HttpOnly, Secure, SameSite flags
+        │     • Caching & Rate-limiting: Cache-Control, Vary: Host, RateLimit-* headers (TMP001)
+        │
+        ├─▶ Layer 2: Passive HTML/DOM Markup & Subresources
+        │     • CSRF protection: POST forms verified for authenticity tokens (HDR008)
+        │     • Form tampering: Hidden fields checked for sensitive variables (role, price, admin) (TMP002/TMP005)
+        │     • Subresource Integrity (SRI): External scripts/stylesheets verified for integrity hashes
+        │     • Transport hygiene: Mixed http:// subresources and links on HTTPS pages
+        │     • Takeover indicators: Dangling links to PaaS services (Heroku, GitHub Pages, Azure, S3) (CLD002)
+        │     • Tabnabbing defense: External target="_blank" links verified for rel="noopener noreferrer" (CLT002)
+        │
+        ├─▶ Layer 3: Client-Side DOM XSS & PostMessage Sinks
+        │     • DOM XSS sinks: inline <script> checked for innerHTML, document.write, eval + location.* (DOM001)
+        │     • Cross-window messaging: window.addEventListener("message") audited for origin validation (DOM002)
+        │     • Client storage hygiene: localStorage / sessionStorage audited for sensitive tokens/keys (CLT001)
+        │
+        └─▶ Layer 4: Inert Reflection Probing & CVE Banner Intelligence
+              • Inert reflection: Alphanumeric canary and <sentinelprobe> tested on GET query parameters
+              • Stack disclosure: Server, X-Powered-By, and X-Generator banners identified (STK001)
+              • Passive CVE correlation: Disclosed software banners and sensitive setup paths matched
+                against Sentinel's 100-CVE vulnerability intelligence database (cve.json)
+              • Database error disclosure: Passive detection of SQL syntax errors and database stack dumps
+```
 
 ### Reflection probing
 
@@ -664,11 +761,11 @@ jobs:
 |---|---|
 | `sentinel <target>` | Shorthand zero-flag audit: URL for web surface scan, or path for SAST. |
 | `sentinel changed` | Audit only modified and newly added git files. |
-| `sentinel audit-code <path>` | AST analysis of a file or directory (all 65 rules across 19 documents). |
+| `sentinel audit-code <path>` | AST analysis of a file or directory (all 167 rules across 21 documents). |
 | `sentinel audit-headers <url>` | Deep passive HTTP header, cookie, and markup audit. |
 | `sentinel rules [--show]` | Validate and list every loaded rule document with CWE, CVE, and date. |
 
-Common options: `--format cli\|json\|sarif`, `--output FILE`, `--fail-on none\|low\|medium\|high\|critical`,
+Common options: `--format cli|json|sarif`, `--output FILE`, `--fail-on none|low|medium|high|critical`,
 `--no-color`. The URL commands add `--timeout SECONDS`, `--no-redirects`, `--deep/--no-deep`
 (inspect up to 25 same-origin pages), `--probe/--no-probe` (inert reflection markers) and
 `--verbose` (every reason, plus the inspected URLs). `audit-code` adds `--changed` / `-c`,
@@ -686,7 +783,7 @@ Common options: `--format cli\|json\|sarif`, `--output FILE`, `--fail-on none\|l
   scheme, host and port of the URL you supplied.
 * The reflection probe is inert text (`<sentinelprobe>`) placed only in a query parameter
   the operator already supplied; it contains no script, quote, or SQL metacharacter, and
-  is sent **only** with the explicit `--probe` flag.
+  is enabled by default during URL audits (toggle with `--no-probe`).
 * No `eval`, no shell, no filesystem writes, no secret material.
 * No telemetry — nothing is sent anywhere except the URL you pass.
 

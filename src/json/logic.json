@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0.0",
+  "analyzer": "logic",
+  "title": "Race Condition and Business Logic Flaw Rules",
+  "rules": [
+    {
+      "rule_id": "LGC001",
+      "name": "Race condition in state-changing balance or inventory operation",
+      "category": "A04:2021 - Insecure Design",
+      "cwe_id": "CWE-362",
+      "cve": "CVE-2023-32314",
+      "cve_date": "2023-05-19",
+      "severity": "HIGH",
+      "description": "Balance, credit, stock or quota is updated with a read-modify-write pattern without database row-level locking (select_for_update, with_for_update) or concurrency locks, allowing race-condition double spending.",
+      "remediation_example": "account = db.session.query(Account).filter_by(id=acc_id).with_for_update().first()\naccount.balance -= amount",
+      "patterns": {
+        "keywords": ["balance", "credit", "stock", "quantity", "inventory", "coupon", "credits"],
+        "guards": ["with_for_update", "select_for_update", "lock", "semaphore", "atomic"]
+      },
+      "tags": ["business-logic", "race-condition", "concurrency"],
+      "references": ["https://cwe.mitre.org/data/definitions/362.html"],
+      "enabled": true
+    },
+    {
+      "rule_id": "LGC002",
+      "name": "Missing positive bounds check on financial or quantity input",
+      "category": "A04:2021 - Insecure Design",
+      "cwe_id": "CWE-840",
+      "cve": "CVE-2022-24785",
+      "cve_date": "2022-04-04",
+      "severity": "HIGH",
+      "description": "Amount, quantity or price read from client request body or form is used in arithmetic or storage without positive bounds validation (checking <= 0), enabling negative-value tampering and credit inflation.",
+      "remediation_example": "if amount <= 0:\n    raise ValueError('Amount must be positive')\naccount.balance += amount",
+      "patterns": {
+        "fields": ["amount", "quantity", "qty", "price", "count"],
+        "guards": ["<=", "<", "min_value", "positive", "greater_than"]
+      },
+      "tags": ["business-logic", "input-validation", "financial"],
+      "references": ["https://cwe.mitre.org/data/definitions/840.html"],
+      "enabled": true
+    }
+  ]
+}

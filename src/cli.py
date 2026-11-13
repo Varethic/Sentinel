@@ -26,11 +26,13 @@ from src.analyzers import auth as auth_analyzer
 from src.analyzers import client as client_analyzer
 from src.analyzers import cloud as cloud_analyzer
 from src.analyzers import cmdi as cmdi_analyzer
+from src.analyzers import cve as cve_analyzer
 from src.analyzers import deps as deps_analyzer
 from src.analyzers import deserial as deserial_analyzer
 from src.analyzers import headers as headers_analyzer
 from src.analyzers import host as host_analyzer
 from src.analyzers import idor as idor_analyzer
+from src.analyzers import logic as logic_analyzer
 from src.analyzers import redos as redos_analyzer
 from src.analyzers import secrets as secrets_analyzer
 from src.analyzers import sqli as sqli_analyzer
@@ -56,12 +58,13 @@ URL_SCHEMES: tuple[str, ...] = ("http://", "https://")
 APP = typer.Typer(
     name=APP_NAME,
     help=(
-        "Defensive web security auditor: static AST analysis across 65 rules "
-        "(SQLi, XSS, command injection, path traversal, secrets, SSRF, "
+        "Defensive web security auditor: static AST analysis across 167 rules "
+        "and 20 CWE categories (SQLi, XSS, command injection, path traversal, secrets, SSRF, "
         "deserialization, XXE, SSTI, auth/TLS, ReDoS, API/GraphQL, deprecated "
         "modules, host header injection, IDOR, cloud storage, client storage, "
-        "rate limiting & request tampering) plus passive HTTP header, cookie, "
-        "CORS, redirect and surface auditing. Detection only - no exploitation."
+        "rate limiting & request tampering, race conditions & business logic) "
+        "plus 100-CVE knowledge base and 4-layer passive HTTP web surface auditing. "
+        "Detection only - no exploitation."
     ),
     add_completion=False,
     no_args_is_help=True,
@@ -103,6 +106,8 @@ def _analyzers() -> list:
         cloud_analyzer,
         client_analyzer,
         tamper_analyzer,
+        logic_analyzer,
+        cve_analyzer,
     ]
 
 
