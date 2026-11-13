@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "analyzer": "ssrf",
+  "title": "Server-Side Request Forgery and Cloud Metadata Access Static Analysis Rules",
+  "rules": [
+    {
+      "rule_id": "SSRF001",
+      "name": "Outbound request to a dynamically built URL",
+      "category": "A10:2021 - Server-Side Request Forgery",
+      "cwe_id": "CWE-918",
+      "severity": "HIGH",
+      "description": "An outbound HTTP client call (requests, httpx, urllib.request, aiohttp) receives a URL assembled with an f-string, '+' concatenation, '%' formatting, str.format() or a bare variable. When that value comes from request data the server fetches an attacker-chosen destination, reaching internal services, cloud metadata endpoints or localhost-only admin interfaces.",
+      "remediation_example": "host = urlparse(candidate).hostname; if host not in ALLOWED_HOSTS: raise ValueError('blocked'); requests.get(candidate, timeout=5)",
+      "patterns": {
+        "sinks": ["get", "post", "put", "patch", "delete", "head", "request", "urlopen", "urlretrieve"],
+        "sink_modules": ["requests", "httpx", "urllib", "aiohttp", "urllib3"],
+        "dynamic_nodes": ["JoinedStr", "BinOp", "Name", "Attribute", "Subscript", "Call"]
+      },
+      "tags": ["ssrf", "network", "url-validation"],
+      "references": [
+        "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/",
+        "https://cwe.mitre.org/data/definitions/918.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "SSRF002",
+      "name": "Cloud metadata endpoint hardcoded in an outbound request",
+      "category": "A10:2021 - Server-Side Request Forgery",
+      "cwe_id": "CWE-918",
+      "severity": "CRITICAL",
+      "description": "An outbound HTTP client call targets a cloud instance metadata service (169.254.169.254 or metadata.google.internal). Reaching this endpoint hands the caller the instance role credentials, so code that fetches it on demand turns any URL-fetching feature into full cloud credential theft.",
+      "remediation_example": "Use the provider SDK credential chain (boto3 default session, google.auth.default()) instead of fetching the metadata endpoint directly.",
+      "patterns": {
+        "sinks": ["get", "post", "put", "patch", "delete", "head", "request", "urlopen", "urlretrieve"],
+        "metadata_hosts": ["169.254.169.254", "metadata.google.internal", "metadata.goog", "fd00:ec2::254"]
+      },
+      "tags": ["ssrf", "cloud", "credentials"],
+      "references": [
+        "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/",
+        "https://cwe.mitre.org/data/definitions/918.html"
+      ],
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "analyzer": "xxe",
+  "title": "XML External Entity Static Analysis Rules",
+  "rules": [
+    {
+      "rule_id": "XXE001",
+      "name": "Standard library XML parser used on external input",
+      "category": "A05:2021 - Security Misconfiguration",
+      "cwe_id": "CWE-611",
+      "severity": "HIGH",
+      "description": "xml.etree.ElementTree.parse/fromstring, xml.dom.minidom.parse/parseString or xml.sax.parse reads XML with the standard library defaults, which expand external entities. A document that declares a SYSTEM entity can read local files or make the parser issue outbound requests, so untrusted XML must be parsed with defusedxml instead.",
+      "remediation_example": "from defusedxml import ElementTree as SafeET; tree = SafeET.parse(source)",
+      "patterns": {
+        "sinks": ["parse", "fromstring", "parseString", "iterparse", "XMLParser"],
+        "sink_modules": ["xml", "xml.etree", "xml.dom", "xml.sax", "xml.etree.ElementTree", "lxml"],
+        "safe_modules": ["defusedxml"],
+        "dynamic_nodes": ["JoinedStr", "BinOp", "Name", "Attribute", "Subscript", "Call"]
+      },
+      "tags": ["xxe", "xml", "entity-expansion"],
+      "references": [
+        "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
+        "https://cwe.mitre.org/data/definitions/611.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "XXE002",
+      "name": "XML parser explicitly enables entity resolution",
+      "category": "A05:2021 - Security Misconfiguration",
+      "cwe_id": "CWE-611",
+      "severity": "HIGH",
+      "description": "lxml.etree.XMLParser is constructed with resolve_entities=True or no_network=False. Those settings re-enable the external entity and network behaviour that lxml disables by default, so a crafted document can read local files or reach remote hosts.",
+      "remediation_example": "parser = lxml.etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False)",
+      "patterns": {
+        "sinks": ["XMLParser"],
+        "sink_modules": ["lxml", "lxml.etree"],
+        "unsafe_keywords": {
+          "resolve_entities": "True",
+          "no_network": "False",
+          "load_dtd": "True",
+          "dtd_validation": "True"
+        }
+      },
+      "tags": ["xxe", "xml", "lxml"],
+      "references": [
+        "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
+        "https://cwe.mitre.org/data/definitions/611.html"
+      ],
+      "enabled": true
+    }
+  ]
+}

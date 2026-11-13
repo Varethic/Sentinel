@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "analyzer": "traversal",
+  "title": "Path Traversal and Unsafe File Operation Static Analysis Rules",
+  "rules": [
+    {
+      "rule_id": "PATH001",
+      "name": "File path built from dynamic input",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-22",
+      "severity": "HIGH",
+      "description": "open() or pathlib.Path() receives a filesystem path assembled from a dynamic value (f-string, '+' concatenation, '%' formatting, str.format() or a bare variable) without visible normalisation. A value containing ../ sequences can escape the intended base directory and read or write arbitrary files.",
+      "remediation_example": "safe = (BASE / name).resolve(); safe.relative_to(BASE.resolve()); open(safe)",
+      "patterns": {
+        "sinks": ["open", "path", "purepath", "posixpath", "windowspath", "open_file"],
+        "sink_modules": ["pathlib", "io", "os", "codecs"],
+        "guard_calls": ["resolve", "relative_to", "is_relative_to", "commonpath", "abspath", "realpath", "normpath", "secure_filename", "basename"],
+        "dynamic_nodes": ["JoinedStr", "BinOp", "Call", "Name", "Attribute"]
+      },
+      "tags": ["filesystem", "traversal", "input-validation"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/22.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "PATH002",
+      "name": "Destructive file operation on dynamic path",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-22",
+      "severity": "CRITICAL",
+      "description": "A destructive filesystem call (os.remove, os.unlink, os.rmdir, os.removedirs, shutil.rmtree) receives a path built from a dynamic value. Traversal here does not merely disclose data: it allows an attacker to delete files or entire directory trees outside the intended scope.",
+      "remediation_example": "target = (UPLOAD_DIR / name).resolve(); target.relative_to(UPLOAD_DIR.resolve()); os.remove(target)",
+      "patterns": {
+        "sinks": ["remove", "unlink", "rmdir", "removedirs", "rmtree", "truncate"],
+        "sink_modules": ["os", "shutil", "pathlib"],
+        "guard_calls": ["resolve", "relative_to", "is_relative_to", "commonpath", "abspath", "realpath", "normpath", "basename"],
+        "dynamic_nodes": ["JoinedStr", "BinOp", "Call", "Name", "Attribute"]
+      },
+      "tags": ["filesystem", "traversal", "destructive"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/22.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "PATH003",
+      "name": "Framework file response with dynamic path",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-22",
+      "severity": "HIGH",
+      "description": "A web framework file-serving helper (Flask send_file/send_from_directory, Starlette/FastAPI FileResponse, Django FileResponse) receives a path built from a dynamic value. Serving user-controlled paths lets an attacker read arbitrary files, including configuration and credential stores.",
+      "remediation_example": "return send_from_directory(app.config['UPLOAD_FOLDER'], name, safe_join=safe_join)",
+      "patterns": {
+        "sinks": ["send_file", "send_from_directory", "fileresponse", "static_file", "sendfile"],
+        "sink_modules": ["flask", "fastapi", "starlette", "django", "werkzeug", "aiohttp"],
+        "guard_calls": ["resolve", "relative_to", "is_relative_to", "commonpath", "abspath", "realpath", "normpath", "secure_filename", "basename", "safe_join"],
+        "dynamic_nodes": ["JoinedStr", "BinOp", "Call", "Name", "Attribute"]
+      },
+      "tags": ["filesystem", "traversal", "web"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/22.html"
+      ],
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,435 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "analyzer": "headers",
+  "title": "Passive HTTP Security Header Rules",
+  "rules": [
+    {
+      "rule_id": "HDR001",
+      "name": "Missing Content-Security-Policy",
+      "category": "A05:2021 - Security Misconfiguration",
+      "cwe_id": "CWE-1021",
+      "severity": "HIGH",
+      "description": "The response does not define a Content-Security-Policy header. Without a CSP the browser will execute any injected script, turning otherwise low-impact injection bugs into full cross-site scripting.",
+      "remediation_example": "Content-Security-Policy: default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      "patterns": {
+        "type": "presence",
+        "header": "content-security-policy",
+        "weak_values": [
+          "unsafe-inline",
+          "unsafe-eval",
+          "*"
+        ],
+        "required_directives": [
+          "default-src",
+          "object-src",
+          "base-uri"
+        ]
+      },
+      "tags": [
+        "http",
+        "headers",
+        "xss",
+        "hardening"
+      ],
+      "references": [
+        "https://owasp.org/www-project-secure-headers/",
+        "https://cwe.mitre.org/data/definitions/1021.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HDR002",
+      "name": "Missing Strict-Transport-Security",
+      "category": "A02:2021 - Cryptographic Failures",
+      "cwe_id": "CWE-319",
+      "severity": "HIGH",
+      "description": "The response does not define Strict-Transport-Security. Without HSTS the browser may fall back to plaintext HTTP, allowing network attackers to downgrade and intercept or modify traffic.",
+      "remediation_example": "Strict-Transport-Security: max-age=63072000; includeSubDomains; preload",
+      "patterns": {
+        "type": "presence",
+        "header": "strict-transport-security",
+        "required_directives": [
+          "max-age"
+        ],
+        "min_max_age": 15552000
+      },
+      "tags": [
+        "http",
+        "headers",
+        "transport",
+        "hardening"
+      ],
+      "references": [
+        "https://owasp.org/www-project-secure-headers/",
+        "https://cwe.mitre.org/data/definitions/319.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HDR003",
+      "name": "Missing or invalid X-Content-Type-Options",
+      "category": "A05:2021 - Security Misconfiguration",
+      "cwe_id": "CWE-693",
+      "severity": "MEDIUM",
+      "description": "The response does not set X-Content-Type-Options: nosniff. Without it browsers may sniff a different content type than declared and treat user-supplied content as executable script or style.",
+      "remediation_example": "X-Content-Type-Options: nosniff",
+      "patterns": {
+        "type": "presence",
+        "header": "x-content-type-options",
+        "expected_value": "nosniff"
+      },
+      "tags": [
+        "http",
+        "headers",
+        "hardening"
+      ],
+      "references": [
+        "https://owasp.org/www-project-secure-headers/",
+        "https://cwe.mitre.org/data/definitions/693.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HDR004",
+      "name": "Missing frame protection (X-Frame-Options / frame-ancestors)",
+      "category": "A05:2021 - Security Misconfiguration",
+      "cwe_id": "CWE-1021",
+      "severity": "MEDIUM",
+      "description": "Neither X-Frame-Options nor a CSP frame-ancestors directive is present. The page can be framed by third-party sites, enabling clickjacking against authenticated users.",
+      "remediation_example": "X-Frame-Options: DENY  (or Content-Security-Policy: frame-ancestors 'none')",
+      "patterns": {
+        "type": "presence",
+        "header": "x-frame-options",
+        "alternative_header": "content-security-policy",
+        "alternative_directive": "frame-ancestors",
+        "allowed_values": [
+          "deny",
+          "sameorigin"
+        ]
+      },
+      "tags": [
+        "http",
+        "headers",
+        "clickjacking",
+        "hardening"
+      ],
+      "references": [
+        "https://owasp.org/www-project-secure-headers/",
+        "https://cwe.mitre.org/data/definitions/1021.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HDR005",
+      "name": "Missing Referrer-Policy",
+      "category": "A05:2021 - Security Misconfiguration",
+      "cwe_id": "CWE-200",
+      "severity": "LOW",
+      "description": "The response does not define Referrer-Policy. Full URLs, including sensitive path or query parameters, may leak to third-party origins through the Referer header.",
+      "remediation_example": "Referrer-Policy: strict-origin-when-cross-origin",
+      "patterns": {
+        "type": "presence",
+        "header": "referrer-policy",
+        "weak_values": [
+          "unsafe-url",
+          "no-referrer-when-downgrade"
+        ]
+      },
+      "tags": [
+        "http",
+        "headers",
+        "privacy"
+      ],
+      "references": [
+        "https://owasp.org/www-project-secure-headers/",
+        "https://cwe.mitre.org/data/definitions/200.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HDR006",
+      "name": "Missing Permissions-Policy",
+      "category": "A05:2021 - Security Misconfiguration",
+      "cwe_id": "CWE-693",
+      "severity": "LOW",
+      "description": "The response does not define Permissions-Policy. Powerful browser features (camera, microphone, geolocation) remain available to embedded content and injected script.",
+      "remediation_example": "Permissions-Policy: geolocation=(), camera=(), microphone=()",
+      "patterns": {
+        "type": "presence",
+        "header": "permissions-policy"
+      },
+      "tags": [
+        "http",
+        "headers",
+        "hardening"
+      ],
+      "references": [
+        "https://owasp.org/www-project-secure-headers/",
+        "https://cwe.mitre.org/data/definitions/693.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HDR007",
+      "name": "Information disclosure via server banners",
+      "category": "A05:2021 - Security Misconfiguration",
+      "cwe_id": "CWE-200",
+      "severity": "LOW",
+      "description": "The response exposes framework or server version details in Server, X-Powered-By or similar headers. Version banners help attackers match known vulnerabilities to the deployment.",
+      "remediation_example": "Remove or genericize the Server and X-Powered-By response headers.",
+      "patterns": {
+        "type": "disclosure",
+        "leaky_headers": [
+          "server",
+          "x-powered-by",
+          "x-aspnet-version",
+          "x-aspnetmvc-version",
+          "x-generator"
+        ]
+      },
+      "tags": [
+        "http",
+        "headers",
+        "disclosure"
+      ],
+      "references": [
+        "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
+        "https://cwe.mitre.org/data/definitions/200.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HDR008",
+      "name": "Cookie missing HttpOnly flag",
+      "category": "A07:2021 - Identification and Authentication Failures",
+      "cwe_id": "CWE-1004",
+      "severity": "MEDIUM",
+      "description": "A Set-Cookie response header does not include the HttpOnly attribute. Client-side JavaScript, including injected script, can read the cookie and exfiltrate session tokens.",
+      "remediation_example": "Set-Cookie: session=<value>; Path=/; Secure; HttpOnly; SameSite=Lax",
+      "patterns": {
+        "type": "cookie",
+        "cookie_attribute": "httponly"
+      },
+      "tags": [
+        "http",
+        "cookies",
+        "session"
+      ],
+      "references": [
+        "https://owasp.org/www-project-secure-headers/",
+        "https://cwe.mitre.org/data/definitions/1004.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HDR009",
+      "name": "Cookie missing Secure flag",
+      "category": "A02:2021 - Cryptographic Failures",
+      "cwe_id": "CWE-614",
+      "severity": "MEDIUM",
+      "description": "A Set-Cookie response header does not include the Secure attribute. The cookie may be transmitted over plaintext HTTP and intercepted on the network.",
+      "remediation_example": "Set-Cookie: session=<value>; Path=/; Secure; HttpOnly; SameSite=Lax",
+      "patterns": {
+        "type": "cookie",
+        "cookie_attribute": "secure"
+      },
+      "tags": [
+        "http",
+        "cookies",
+        "transport"
+      ],
+      "references": [
+        "https://owasp.org/www-project-secure-headers/",
+        "https://cwe.mitre.org/data/definitions/614.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HDR010",
+      "name": "Cookie missing or weak SameSite attribute",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-1275",
+      "severity": "MEDIUM",
+      "description": "A Set-Cookie response header omits SameSite or sets SameSite=None without Secure. The browser will attach the cookie to cross-site requests, enabling cross-site request forgery on state-changing endpoints.",
+      "remediation_example": "Set-Cookie: session=<value>; Path=/; Secure; HttpOnly; SameSite=Lax",
+      "patterns": {
+        "type": "cookie",
+        "cookie_attribute": "samesite",
+        "allowed_values": [
+          "lax",
+          "strict"
+        ]
+      },
+      "tags": [
+        "http",
+        "cookies",
+        "csrf"
+      ],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/1275.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HDR011",
+      "name": "Overly permissive CORS policy",
+      "category": "A05:2021 - Security Misconfiguration",
+      "cwe_id": "CWE-942",
+      "severity": "MEDIUM",
+      "description": "The response allows cross-origin access that is wider than intended: Access-Control-Allow-Origin is '*' while Access-Control-Allow-Credentials is true, or the wildcard is combined with a dynamic origin reflection. Browsers then let any site read authenticated responses on the victim's behalf.",
+      "remediation_example": "Access-Control-Allow-Origin: https://app.example.com  (explicit origin, never '*' with credentials)",
+      "patterns": {
+        "type": "cors",
+        "origin_header": "access-control-allow-origin",
+        "credentials_header": "access-control-allow-credentials",
+        "wildcard": "*",
+        "allow_credentials_true": [
+          "true"
+        ],
+        "reflective_headers": [
+          "access-control-allow-origin",
+          "access-control-allow-methods",
+          "access-control-allow-headers",
+          "vary"
+        ]
+      },
+      "tags": [
+        "http",
+        "headers",
+        "cors",
+        "misconfiguration"
+      ],
+      "references": [
+        "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
+        "https://cwe.mitre.org/data/definitions/942.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HDR012",
+      "name": "Debug or stack trace disclosure in response body",
+      "category": "A05:2021 - Security Misconfiguration",
+      "cwe_id": "CWE-209",
+      "severity": "MEDIUM",
+      "description": "The response body contains a language or framework error traceback (Python, Django, Flask/Werkzeug debugger, SQL errors) rather than a generic error page. Tracebacks reveal file paths, framework versions, source lines and sometimes local variable values.",
+      "remediation_example": "Return a generic error page and log the traceback server-side (DEBUG = False in Django/Flask).",
+      "patterns": {
+        "type": "body_disclosure",
+        "signatures": [
+          "traceback (most recent call last)",
+          "werkzeug debugger",
+          "django.views.debug",
+          "you're seeing this error because you have",
+          "debug = true",
+          "django version",
+          "flask debug",
+          "sqlalchemy.exc.",
+          "psycopg2.errors",
+          "sqlite3.operationalerror",
+          "unhandled exception",
+          "system.nullreferenceexception",
+          "stack trace:",
+          "at line"
+        ]
+      },
+      "tags": [
+        "http",
+        "headers",
+        "disclosure",
+        "debug"
+      ],
+      "references": [
+        "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
+        "https://cwe.mitre.org/data/definitions/209.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HDR013",
+      "name": "Redirect and URL-fetch parameters exposed to visitors",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-601",
+      "severity": "MEDIUM",
+      "description": "A link or form on the page carries a query parameter whose name implies a redirect target or a server-side fetch (url, redirect, next, target, dest, return_to, callback, continue, image, fetch). Such parameters steer where the browser or server goes next, so without an allow-list they become open-redirect and SSRF entry points.",
+      "remediation_example": "Accept only relative paths, or validate the destination against an allow-list of known hosts before redirecting or fetching.",
+      "patterns": {
+        "type": "redirect_surface",
+        "parameter_tokens": [
+          "url",
+          "redirect",
+          "next",
+          "target",
+          "dest",
+          "return_to",
+          "returnto",
+          "return_url",
+          "callback",
+          "continue",
+          "redir",
+          "goto",
+          "out",
+          "image",
+          "img",
+          "fetch",
+          "src",
+          "href",
+          "u",
+          "r"
+        ]
+      },
+      "tags": [
+        "http",
+        "headers",
+        "redirect",
+        "ssrf"
+      ],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/601.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HDR014",
+      "name": "Directory listing or sensitive file content exposed",
+      "category": "A05:2021 - Security Misconfiguration",
+      "cwe_id": "CWE-538",
+      "severity": "HIGH",
+      "description": "The response body is an auto-generated directory index ('Index of /') or contains file content that should never be served, such as environment assignments (DB_PASSWORD=, SECRET_KEY=), a PEM PRIVATE KEY block, a .env file listing or a CI credential variable. Any visitor can read files the operator intended to keep internal.",
+      "remediation_example": "Disable auto-indexing (autoindex off / Options -Indexes) and deny requests for dotfiles, backups and .env paths at the web server.",
+      "patterns": {
+        "type": "body_disclosure",
+        "signatures": [
+          "index of /",
+          "directory listing for",
+          "parent directory",
+          "db_password=",
+          "database_url=",
+          "secret_key=",
+          "api_key=",
+          "aws_secret_access_key",
+          "-----begin rsa private key-----",
+          "-----begin private key-----",
+          "-----begin openssh private key-----",
+          ".env",
+          "id_rsa",
+          "/etc/passwd",
+          "root:x:0:0"
+        ]
+      },
+      "tags": [
+        "http",
+        "headers",
+        "disclosure",
+        "listing"
+      ],
+      "references": [
+        "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
+        "https://cwe.mitre.org/data/definitions/538.html"
+      ],
+      "enabled": true
+    }
+  ]
+}

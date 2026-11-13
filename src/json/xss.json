@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "analyzer": "xss",
+  "title": "Cross-Site Scripting Static Analysis Rules",
+  "rules": [
+    {
+      "rule_id": "XSS001",
+      "name": "Unescaped HTML marked safe via Markup()",
+      "category": "A03:2021 - Injection",
+      "cwe_id": "CWE-79",
+      "severity": "HIGH",
+      "description": "A value is wrapped in markupsafe.Markup() (or jinja2.Markup()). This marks the string as trusted HTML and disables auto-escaping, so any dynamic content is rendered verbatim into the response.",
+      "remediation_example": "from markupsafe import escape\nreturn render_template('page.html', body=escape(user_body))",
+      "patterns": {
+        "sinks": ["Markup", "mark_safe", "SafeString", "HTMLString", "literal"],
+        "require_dynamic_argument": true,
+        "dynamic_nodes": ["JoinedStr", "BinOp:Add", "BinOp:Mod", "Call:format", "Name", "Attribute", "Subscript", "Call"]
+      },
+      "tags": ["http", "template", "xss"],
+      "references": [
+        "https://owasp.org/Top10/A03_2021-Injection/",
+        "https://cwe.mitre.org/data/definitions/79.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "XSS002",
+      "name": "Template source built from dynamic input (render_template_string)",
+      "category": "A03:2021 - Injection",
+      "cwe_id": "CWE-79",
+      "severity": "HIGH",
+      "description": "render_template_string() (or a direct Jinja2 Environment.from_string() call) receives a template whose source is assembled from dynamic values. The value becomes template source, so it can include new template tags and markup that bypass auto-escaping of the outer template.",
+      "remediation_example": "return render_template('greeting.html', name=name)",
+      "patterns": {
+        "sinks": ["render_template_string", "from_string", "Template"],
+        "require_dynamic_argument": true,
+        "dynamic_nodes": ["JoinedStr", "BinOp:Add", "BinOp:Mod", "Call:format", "Name", "Attribute", "Subscript"]
+      },
+      "tags": ["http", "template", "ssti", "xss"],
+      "references": [
+        "https://owasp.org/Top10/A03_2021-Injection/",
+        "https://cwe.mitre.org/data/definitions/79.html",
+        "https://cwe.mitre.org/data/definitions/1336.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "XSS003",
+      "name": "Auto-escaping explicitly disabled",
+      "category": "A02:2021 - Cryptographic Failures",
+      "cwe_id": "CWE-79",
+      "severity": "MEDIUM",
+      "description": "Template auto-escaping is turned off (autoescape=False) or HTML output is returned with mark_safe/django.utils.safestring.mark_safe on dynamic data. Disabling the framework's escaping layer makes every subsequent interpolation an XSS candidate.",
+      "remediation_example": "render_template('page.html', user=user)  # keep autoescape enabled",
+      "patterns": {
+        "sinks": ["mark_safe", "Markup", "safe", "Environment"],
+        "autoescape_flag": "autoescape",
+        "dynamic_nodes": ["Name", "Attribute", "JoinedStr", "BinOp:Add", "Call:format", "Subscript"]
+      },
+      "tags": ["http", "template", "xss", "misconfiguration"],
+      "references": [
+        "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
+        "https://cwe.mitre.org/data/definitions/79.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "XSS004",
+      "name": "Response body written with dynamic HTML",
+      "category": "A03:2021 - Injection",
+      "cwe_id": "CWE-79",
+      "severity": "HIGH",
+      "description": "An HTTP response body is produced by interpolating values into an HTML string, for example with an f-string or concatenation passed to Response()/HttpResponse()/make_response(). The response declares HTML content type, so interpolated data executes as markup in the browser.",
+      "remediation_example": "return Response(render_template('hello.html', name=escape(name)), mimetype='text/html')",
+      "patterns": {
+        "sinks": ["Response", "HttpResponse", "make_response", "HTMLResponse", "render_template_string"],
+        "html_markers": ["<html", "<body", "<div", "<p>", "<span", "<script", "<a ", "<!doctype"],
+        "require_dynamic_argument": true,
+        "dynamic_nodes": ["JoinedStr", "BinOp:Add", "BinOp:Mod", "Call:format"]
+      },
+      "tags": ["http", "response", "xss"],
+      "references": [
+        "https://owasp.org/Top10/A03_2021-Injection/",
+        "https://cwe.mitre.org/data/definitions/79.html"
+      ],
+      "enabled": true
+    }
+  ]
+}
