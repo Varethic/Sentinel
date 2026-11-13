@@ -11,6 +11,7 @@ present, and 2 on usage or runtime errors, so pipelines can gate on results.
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from enum import Enum
 from pathlib import Path
@@ -35,12 +36,14 @@ from src.analyzers import secrets as secrets_analyzer
 from src.analyzers import sqli as sqli_analyzer
 from src.analyzers import ssti as ssti_analyzer
 from src.analyzers import ssrf as ssrf_analyzer
+from src.analyzers import tamper as tamper_analyzer
 from src.analyzers import traversal as traversal_analyzer
 from src.analyzers import xss as xss_analyzer
 from src.analyzers import xxe as xxe_analyzer
 from src.core import engine
 from src.core.loader import RuleLoadError, _load_all, _validate_all
 from src.reporters import json as json_reporter
+from src.reporters import sarif as sarif_reporter
 from src.reporters import terminal as terminal_reporter
 
 EXIT_OK: int = 0
@@ -53,12 +56,12 @@ URL_SCHEMES: tuple[str, ...] = ("http://", "https://")
 APP = typer.Typer(
     name=APP_NAME,
     help=(
-        "Defensive web security auditor: static AST analysis across 56 rules "
+        "Defensive web security auditor: static AST analysis across 65 rules "
         "(SQLi, XSS, command injection, path traversal, secrets, SSRF, "
         "deserialization, XXE, SSTI, auth/TLS, ReDoS, API/GraphQL, deprecated "
-        "modules, host header injection, IDOR, cloud storage, client storage) "
-        "plus passive HTTP header, cookie, CORS, redirect and surface auditing. "
-        "Detection only - no exploitation."
+        "modules, host header injection, IDOR, cloud storage, client storage, "
+        "rate limiting & request tampering) plus passive HTTP header, cookie, "
+        "CORS, redirect and surface auditing. Detection only - no exploitation."
     ),
     add_completion=False,
     no_args_is_help=True,
@@ -71,6 +74,7 @@ class OutputFormat(str, Enum):
 
     CLI = "cli"
     JSON = "json"
+    SARIF = "sarif"
 
 
 def _err(message: str) -> None:
@@ -98,6 +102,7 @@ def _analyzers() -> list:
         idor_analyzer,
         cloud_analyzer,
         client_analyzer,
+        tamper_analyzer,
     ]
 
 
@@ -107,7 +112,7 @@ def _exit_for(blocking: bool) -> None:
 
 
 def _write(out_path: Path, text: str) -> None:
-    """Write JSON output to a file, reporting failures cleanly."""
+    """Write report output to a file, reporting failures cleanly."""
     try:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(text + "\n", encoding="utf-8")
@@ -115,24 +120,78 @@ def _write(out_path: Path, text: str) -> None:
         raise typer.BadParameter(f"cannot write report to {out_path}: {exc}") from exc
 
 
+def _git_changed_files(root: Path | None = None) -> list[Path]:
+    """Query git status and git diff to find modified or new Python files."""
+    target_dir = root.resolve() if root else Path.cwd().resolve()
+    seen: set[Path] = set()
+    files: list[Path] = []
+
+    def _collect(output: str) -> None:
+        for raw_line in output.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if " -> " in line:
+                rel_path = line.split(" -> ")[-1].strip()
+            elif len(line) >= 3 and (line[0] in " MADRCU?!" or line[1] in " MADRCU?!"):
+                rel_path = line[2:].strip().strip('"')
+            else:
+                rel_path = line.strip().strip('"')
+            candidate = (target_dir / rel_path).resolve()
+            if candidate.suffix.lower() in engine.SOURCE_SUFFIXES and candidate.is_file():
+                if candidate not in seen:
+                    seen.add(candidate)
+                    files.append(candidate)
+
+    try:
+        proc_diff = subprocess.run(
+            ["git", "diff", "--name-only", "HEAD"],
+            cwd=target_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc_diff.returncode == 0:
+            _collect(proc_diff.stdout)
+    except (OSError, ValueError):
+        pass
+
+    try:
+        proc_status = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=target_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc_status.returncode == 0:
+            _collect(proc_status.stdout)
+    except (OSError, ValueError):
+        pass
+
+    files.sort()
+    return files
+
+
 @APP.command(name="audit-code")
 def _audit_code(
     path: Annotated[
-        Path,
+        Path | None,
         typer.Argument(
-            exists=True,
-            readable=True,
-            resolve_path=True,
-            help="Python file or directory to analyze.",
+            help="Python file or directory to analyze (omit when using --changed).",
         ),
-    ],
+    ] = None,
+    changed: Annotated[
+        bool,
+        typer.Option("--changed", "-c", help="Audit only modified and newly added git files."),
+    ] = False,
     format: Annotated[
         OutputFormat,
         typer.Option("--format", "-f", help="Report format.", case_sensitive=False),
     ] = OutputFormat.CLI,
     output: Annotated[
         Path | None,
-        typer.Option("--output", "-o", help="Write the JSON report to this file."),
+        typer.Option("--output", "-o", help="Write the report to this file."),
     ] = None,
     no_color: Annotated[
         bool,
@@ -160,11 +219,23 @@ def _audit_code(
     ] = "high",
 ) -> None:
     """Statically analyze Python source for injection and misconfiguration patterns."""
+    if path is None and not changed:
+        _err("missing target path (e.g. 'sentinel audit-code src' or 'sentinel audit-code --changed')")
+        raise typer.Exit(code=EXIT_ERROR)
+
     excluded = engine.DEFAULT_EXCLUDED | {item for item in (exclude or []) if item}
     threshold = _threshold(fail_on)
+    scan_target = path if path is not None else Path(".")
 
     try:
-        result = engine._run_analyzers(path, _analyzers(), excluded=excluded)
+        if changed:
+            changed_files = _git_changed_files(scan_target)
+            files_to_scan = [
+                f for f in changed_files if not any(part in excluded for part in f.parts)
+            ]
+            result = engine._run_analyzers_on_files(files_to_scan, _analyzers(), root=scan_target)
+        else:
+            result = engine._run_analyzers(scan_target, _analyzers(), excluded=excluded)
     except FileNotFoundError as exc:
         _err(str(exc))
         raise typer.Exit(code=EXIT_ERROR) from exc
@@ -178,17 +249,25 @@ def _audit_code(
     blocking = _blocking_count(result.findings, threshold)
 
     if format is OutputFormat.JSON:
-        text = json_reporter._render_code(result, str(path))
+        text = json_reporter._render_code(result, str(scan_target))
         if output is not None:
             _write(output, text)
             typer.echo(f"JSON report written to {output}", err=True)
         else:
             typer.echo(text)
+    elif format is OutputFormat.SARIF:
+        text = sarif_reporter._render_sarif(result, target=scan_target)
+        if output is not None:
+            _write(output, text)
+            typer.echo(f"SARIF report written to {output}", err=True)
+        else:
+            typer.echo(text)
     else:
+        title = "Static analysis findings" if not changed else "Static analysis findings (git changed files)"
         terminal_reporter._render_findings(
             result,
-            source=str(path),
-            title="Static analysis findings",
+            source=str(scan_target),
+            title=title,
             no_color=no_color,
             show_remediation=not quiet,
         )
@@ -196,6 +275,54 @@ def _audit_code(
             terminal_reporter._render_exit_hint(blocking, no_color=no_color)
 
     raise typer.Exit(code=EXIT_FINDINGS if blocking else EXIT_OK)
+
+
+@APP.command(name="changed")
+def _changed(
+    format: Annotated[
+        OutputFormat,
+        typer.Option("--format", "-f", help="Report format.", case_sensitive=False),
+    ] = OutputFormat.CLI,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Write the report to this file."),
+    ] = None,
+    no_color: Annotated[
+        bool,
+        typer.Option("--no-color", help="Disable ANSI colour in terminal output."),
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option("--quiet", "-q", help="Suppress the remediation guidance section."),
+    ] = False,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--exclude",
+            "-x",
+            help="Additional directory name to skip (repeatable).",
+        ),
+    ] = None,
+    fail_on: Annotated[
+        str,
+        typer.Option(
+            "--fail-on",
+            help="Lowest severity that fails the run: none, low, medium, high, critical.",
+            case_sensitive=False,
+        ),
+    ] = "high",
+) -> None:
+    """Audit only modified and newly added git files."""
+    _audit_code(
+        path=Path("."),
+        changed=True,
+        format=format,
+        output=output,
+        no_color=no_color,
+        quiet=quiet,
+        exclude=exclude,
+        fail_on=fail_on,
+    )
 
 
 @APP.command(name="audit-headers")
@@ -247,17 +374,17 @@ def _audit_headers(
     deep: Annotated[
         bool,
         typer.Option(
-            "--deep",
-            help="Also inspect up to 5 same-origin pages discovered from links and forms.",
+            "--deep/--no-deep",
+            help="Also inspect up to 25 same-origin pages discovered from links and forms.",
         ),
-    ] = False,
+    ] = True,
     probe: Annotated[
         bool,
         typer.Option(
-            "--probe",
+            "--probe/--no-probe",
             help="Send one benign canary value to existing GET parameters to confirm reflection.",
         ),
-    ] = False,
+    ] = True,
 ) -> None:
     """Audit HTTP headers, cookies, markup and redirect surface with passive requests."""
     # ``--verbose`` selects the unified check even without the hidden ``--web``
@@ -410,8 +537,8 @@ def _run_url_audit(
     no_color: bool,
     verbose: bool = False,
     fail_on: str = "high",
-    deep: bool = False,
-    probe: bool = False,
+    deep: bool = True,
+    probe: bool = True,
 ) -> None:
     """Check XSS, SQL injection and headers for a URL and exit accordingly.
 
@@ -522,20 +649,34 @@ def _root(
 
 
 ROOT_OPTIONS_WITH_VALUE: frozenset[str] = frozenset(
-    {"--format", "-f", "--output", "-o", "--timeout", "--fail-on"}
+    {"--format", "-f", "--output", "-o", "--timeout", "--fail-on", "--exclude", "-x"}
 )
 ROOT_FLAGS: frozenset[str] = frozenset(
-    {"--no-redirects", "--no-color", "--version", "-v", "--verbose", "--deep", "--probe"}
+    {
+        "--no-redirects",
+        "--no-color",
+        "--version",
+        "-v",
+        "--verbose",
+        "--deep",
+        "--no-deep",
+        "--probe",
+        "--no-probe",
+        "--quiet",
+        "-q",
+        "--changed",
+        "-c",
+    }
 )
 
 
 def _route_shorthand(argv: list[str]) -> list[str]:
-    """Rewrite ``sentinel <url> [opts]`` into ``sentinel audit-headers --web <url> [opts]``.
+    """Rewrite shorthand invocations into the appropriate subcommand.
 
-    Only a first positional argument that looks like a URL (or a bare hostname) is
-    rewritten, so every existing subcommand keeps working unchanged. The ``--web``
-    marker selects the unified xss / sql injection / headers check with the compact
-    summary; ``--verbose`` drops that marker to render the detailed tables.
+    * ``sentinel <url> [opts]`` -> ``sentinel audit-headers --web <url> [opts]``
+    * ``sentinel <path> [opts]`` -> ``sentinel audit-code <path> [opts]``
+    * Existing subcommands (``audit-code``, ``audit-headers``, ``changed``, ``rules``)
+      and root flags (``--help``, ``--version``) remain unchanged.
     """
     if not argv:
         return argv
@@ -548,38 +689,39 @@ def _route_shorthand(argv: list[str]) -> list[str]:
     if head in known_commands:
         return argv
 
-    if not (_is_url(head) or _looks_like_host(head)):
-        return argv
-
-    # Validate that the trailing options belong to the header audit surface.
-    index = 1
-    while index < len(argv):
-        token = argv[index]
-        if token.startswith("--") and "=" in token:
-            name = token.split("=", 1)[0]
-            if name not in ROOT_OPTIONS_WITH_VALUE and name not in ROOT_FLAGS:
+    if _is_url(head) or _looks_like_host(head):
+        # Validate that the trailing options belong to the header audit surface.
+        index = 1
+        while index < len(argv):
+            token = argv[index]
+            if token.startswith("--") and "=" in token:
+                name = token.split("=", 1)[0]
+                if name not in ROOT_OPTIONS_WITH_VALUE and name not in ROOT_FLAGS:
+                    return argv
+                index += 1
+                continue
+            if token in ROOT_FLAGS:
+                index += 1
+                continue
+            if token in ROOT_OPTIONS_WITH_VALUE:
+                index += 2
+                continue
+            if token.startswith("-") and token not in {"-h", "--help"}:
                 return argv
-            index += 1
-            continue
-        if token in ROOT_FLAGS:
-            index += 1
-            continue
-        if token in ROOT_OPTIONS_WITH_VALUE:
-            index += 2
-            continue
-        if token.startswith("-") and token not in {"-h", "--help"}:
+            # Any other positional after the URL is not a valid shorthand form.
             return argv
-        # Any other positional after the URL is not a valid shorthand form.
-        return argv
 
-    tail = argv[1:]
-    verbose = "--verbose" in tail
-    if verbose:
-        # Keep --verbose so the detailed renderer is selected; only the hidden
-        # --web marker is omitted, since --verbose implies the unified check.
-        return ["audit-headers", head, *tail]
-    forwarded = [token for token in tail if token != "--verbose"]
-    return ["audit-headers", "--web", head, *forwarded]
+        tail = argv[1:]
+        verbose = "--verbose" in tail
+        if verbose:
+            # Keep --verbose so the detailed renderer is selected; only the hidden
+            # --web marker is omitted, since --verbose implies the unified check.
+            return ["audit-headers", head, *tail]
+        forwarded = [token for token in tail if token != "--verbose"]
+        return ["audit-headers", "--web", head, *forwarded]
+
+    # Non-URL, non-command positional: route to audit-code <head> [*tail]
+    return ["audit-code", head, *argv[1:]]
 
 
 def _command_names() -> list[str]:

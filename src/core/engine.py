@@ -174,6 +174,10 @@ class Visitor(ast.NodeVisitor):
         rule = self._rule(rule_id)
         if rule is None:
             return
+        lineno = getattr(node, "lineno", 0) or 0
+        if 1 <= lineno <= len(self._target.lines):
+            if _is_suppressed_line(self._target.lines[lineno - 1]):
+                return
         self.findings.append(
             Finding(
                 rule_id=rule.rule_id,
@@ -184,7 +188,7 @@ class Visitor(ast.NodeVisitor):
                 cve=rule.cve,
                 cve_date=rule.cve_date,
                 file_path=self._target.display_path,
-                line_number=getattr(node, "lineno", 0) or 0,
+                line_number=lineno,
                 column=getattr(node, "col_offset", 0) or 0,
                 code_snippet=self._snippet(node),
                 message=message,
@@ -602,6 +606,12 @@ def _read_source(path: Path, root: Path) -> SourceFile:
     )
 
 
+def _is_suppressed_line(line: str) -> bool:
+    """Return True if the source line contains a suppression comment."""
+    lowered = line.lower()
+    return "# sentinel: ignore" in lowered or "# nosec" in lowered
+
+
 def _dedupe(findings: Iterable[Finding]) -> list[Finding]:
     """Remove duplicate findings and sort by severity then location."""
     seen: set[tuple[str, str, int, str]] = set()
@@ -616,15 +626,14 @@ def _dedupe(findings: Iterable[Finding]) -> list[Finding]:
     return unique
 
 
-def _run_analyzers(
-    target: Path,
+def _run_analyzers_on_files(
+    files: Sequence[Path],
     analyzers: Sequence[Analyzer],
-    excluded: frozenset[str] = DEFAULT_EXCLUDED,
+    root: Path | None = None,
+    skipped: int = 0,
 ) -> AnalysisResult:
-    """Run every analyzer over a file or directory target."""
-    root = target.expanduser()
-    files, skipped = _collect_files(root, excluded=excluded)
-
+    """Run every analyzer over an explicit sequence of source file paths."""
+    scan_root = root.expanduser().resolve() if root is not None else Path.cwd().resolve()
     rules_by_analyzer = {
         analyzer._name(): _rules_for(analyzer._name()) for analyzer in analyzers
     }
@@ -634,10 +643,13 @@ def _run_analyzers(
     scanned = 0
 
     for path in files:
+        resolved = path.expanduser().resolve()
+        if not resolved.exists() or not resolved.is_file():
+            continue
         try:
-            source_file = _read_source(path, root)
+            source_file = _read_source(resolved, scan_root)
         except (OSError, SyntaxError, ValueError) as exc:
-            errors.append(f"{_display_path(path, root)}: {exc.__class__.__name__}: {exc}")
+            errors.append(f"{_display_path(resolved, scan_root)}: {exc.__class__.__name__}: {exc}")
             continue
         scanned += 1
         for analyzer in analyzers:
@@ -646,7 +658,12 @@ def _run_analyzers(
             if not rules:
                 continue
             try:
-                findings.extend(analyzer._analyze(source_file))
+                raw_findings = analyzer._analyze(source_file)
+                for finding in raw_findings:
+                    if 1 <= finding.line_number <= len(source_file.lines):
+                        if _is_suppressed_line(source_file.lines[finding.line_number - 1]):
+                            continue
+                    findings.append(finding)
             except (SyntaxError, ValueError, RecursionError) as exc:
                 errors.append(f"{source_file.display_path}: analyzer {name} failed: {exc}")
 
@@ -656,3 +673,14 @@ def _run_analyzers(
         files_skipped=skipped,
         errors=tuple(errors),
     )
+
+
+def _run_analyzers(
+    target: Path,
+    analyzers: Sequence[Analyzer],
+    excluded: frozenset[str] = DEFAULT_EXCLUDED,
+) -> AnalysisResult:
+    """Run every analyzer over a file or directory target."""
+    root = target.expanduser()
+    files, skipped = _collect_files(root, excluded=excluded)
+    return _run_analyzers_on_files(files, analyzers, root=root, skipped=skipped)

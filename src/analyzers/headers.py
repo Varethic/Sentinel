@@ -646,8 +646,8 @@ BODY_LIMIT: int = 2_000_000
 
 # Hard ceilings for multi-page inspection. These bound the total work a single
 # audit can perform against an operator-supplied host.
-MAX_PAGES: int = 5
-MAX_DISCOVERED_LINKS: int = 40
+MAX_PAGES: int = 25
+MAX_DISCOVERED_LINKS: int = 100
 MAX_SURFACE_FINDINGS: int = 25
 
 # Form field names that commonly carry an anti-CSRF token.
@@ -1649,10 +1649,24 @@ def _inspect_html_surface(
                     storage_leaks.append(f"inline script stores '{token}' in client storage")
                     break
 
+    # Hidden field parameter tampering (TMP002)
+    hidden_tampering: list[str] = []
+    sensitive_hidden = ("role", "is_admin", "admin", "price", "amount", "discount", "user_id")
+    for form in parser.forms:
+        fields = form.get("fields")
+        if isinstance(fields, list):
+            for field in fields:
+                if isinstance(field, dict) and str(field.get("type", "")).lower() == "hidden":
+                    fname = str(field.get("name", "")).lower()
+                    if any(p in fname for p in sensitive_hidden):
+                        hidden_tampering.append(
+                            f"sensitive parameter '{fname}' in hidden form field without tamper protection"
+                        )
+
     return {
         CATEGORY_XSS: integrity,
         CATEGORY_HEADERS: [*mixed, *passwords, *insecure_action],
-        CATEGORY_CORS: [*takeovers, *tabnabbing, *storage_leaks],
+        CATEGORY_CORS: [*takeovers, *tabnabbing, *storage_leaks, *hidden_tampering],
         CATEGORY_SSRF: redirects,
         "csrf": csrf,
     }
@@ -1803,8 +1817,8 @@ def _audit_web(
     follow_redirects: bool = True,
     max_redirects: int = DEFAULT_REDIRECTS,
     client: httpx.Client | None = None,
-    probe: bool = False,
-    deep: bool = False,
+    probe: bool = True,
+    deep: bool = True,
     max_pages: int = MAX_PAGES,
 ) -> WebReport:
     """Run the unified xss / sql injection / headers / CORS check for one URL.

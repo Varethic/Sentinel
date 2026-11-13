@@ -47,6 +47,27 @@
         "https://cwe.mitre.org/data/definitions/284.html"
       ],
       "enabled": true
+    },
+    {
+      "rule_id": "IDR003",
+      "name": "Unbounded multi-tenant object mutation",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-639",
+      "cve": "CVE-2023-38039",
+      "cve_date": "2023-07-26",
+      "severity": "CRITICAL",
+      "description": "State-modifying operations (update, delete) executed on database records using external id without tenant_id or user_id scoping.",
+      "remediation_example": "db.session.query(Item).filter_by(id=item_id, tenant_id=current_user.tenant_id).delete()  # scope mutations to current tenant",
+      "patterns": {
+        "type": "tenant_mutation",
+        "mutation_methods": ["update", "delete", "delete_by_id"]
+      },
+      "tags": ["idor", "multi-tenant", "mutation"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/639.html"
+      ],
+      "enabled": true
     }
   ]
 }

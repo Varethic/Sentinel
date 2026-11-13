@@ -46,6 +46,27 @@
         "https://cwe.mitre.org/data/definitions/444.html"
       ],
       "enabled": true
+    },
+    {
+      "rule_id": "HST003",
+      "name": "Host header password reset poisoning via email",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-644",
+      "cve": "CVE-2021-32796",
+      "cve_date": "2021-08-04",
+      "severity": "CRITICAL",
+      "description": "Password reset email template interpolates raw Host header into password reset URL, allowing attackers to trigger password resets that send reset tokens to attacker-controlled domains.",
+      "remediation_example": "reset_url = f'{SERVER_BASE_URL}/reset?token={token}'  # use fixed server base URL rather than request Host",
+      "patterns": {
+        "type": "host_email_poisoning",
+        "sinks": ["send_mail", "send_reset_email", "mail", "send_message"]
+      },
+      "tags": ["host", "password-reset", "email"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/644.html"
+      ],
+      "enabled": true
     }
   ]
 }

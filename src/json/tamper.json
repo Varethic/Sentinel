@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "analyzer": "tamper",
+  "title": "Rate-Limiting and Request/Parameter Tampering Analysis Rules",
+  "rules": [
+    {
+      "rule_id": "TMP001",
+      "name": "Missing brute-force and rate-limit protection",
+      "category": "A07:2021 - Identification and Authentication Failures",
+      "cwe_id": "CWE-307",
+      "cve": "CVE-2022-24785",
+      "cve_date": "2022-04-04",
+      "severity": "HIGH",
+      "description": "Authentication or credential-verifying endpoint (/login, /signin, /token, /otp, /reset-password) lacks rate-limiting or throttling protection, permitting automated brute-force and credential-stuffing attacks.",
+      "remediation_example": "@app.route('/login', methods=['POST'])\n@limiter.limit('5 per minute')\ndef login(): ...  # enforce rate limiting decorator",
+      "patterns": {
+        "type": "auth_rate_limit",
+        "auth_paths": ["/login", "/signin", "/token", "/otp", "/reset-password", "/auth", "/password"],
+        "rate_limit_decorators": ["limiter", "throttle", "ratelimit", "slowapi", "rate_limit", "limit"]
+      },
+      "tags": ["tamper", "rate-limit", "brute-force", "auth"],
+      "references": [
+        "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/",
+        "https://cwe.mitre.org/data/definitions/307.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "TMP002",
+      "name": "Client-side parameter and hidden field tampering",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-472",
+      "cve": "CVE-2021-32677",
+      "cve_date": "2021-06-11",
+      "severity": "HIGH",
+      "description": "Privilege, role, or financial fields are accepted directly from untrusted request data (form, cookies, JSON) without server-side validation or cryptographic signing, enabling client-side parameter tampering.",
+      "remediation_example": "price = Product.query.get(product_id).price  # lookup authoritative price server-side; do not trust client form price",
+      "patterns": {
+        "type": "parameter_tampering",
+        "sensitive_fields": ["price", "amount", "discount", "role", "is_admin", "admin", "credits", "balance"]
+      },
+      "tags": ["tamper", "parameters", "privilege", "access-control"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/472.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "TMP003",
+      "name": "HTTP verb tampering and method override",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-650",
+      "cve": "CVE-2023-25690",
+      "cve_date": "2023-03-07",
+      "severity": "HIGH",
+      "description": "Request handler trusts HTTP method override headers (X-HTTP-Method-Override, X-Method-Override) or binds state-changing actions to both safe (GET) and unsafe (POST/DELETE) verbs on the same route.",
+      "remediation_example": "@app.route('/resource/<id>', methods=['POST'])  # restrict route exclusively to POST; reject method override headers",
+      "patterns": {
+        "type": "verb_tampering",
+        "override_headers": ["x-http-method-override", "x-method-override", "x-http-method"]
+      },
+      "tags": ["tamper", "http-verbs", "method-override"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/650.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "TMP004",
+      "name": "HTTP parameter pollution across duplicate parameters",
+      "category": "A03:2021 - Injection",
+      "cwe_id": "CWE-235",
+      "cve": "CVE-2022-29217",
+      "cve_date": "2022-05-24",
+      "severity": "MEDIUM",
+      "description": "Handler reads request query parameters without verifying multiplicity, allowing attackers to supply duplicate parameters to bypass WAFs or confuse backend parsers.",
+      "remediation_example": "val = request.args.getlist('param'); if len(val) > 1: raise BadRequest()  # reject ambiguous duplicate parameters",
+      "patterns": {
+        "type": "parameter_pollution"
+      },
+      "tags": ["tamper", "hpp", "injection"],
+      "references": [
+        "https://owasp.org/Top10/A03_2021-Injection/",
+        "https://cwe.mitre.org/data/definitions/235.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "TMP005",
+      "name": "Insecure client state reflection in hidden form fields",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-472",
+      "cve": "CVE-2021-41773",
+      "cve_date": "2021-10-05",
+      "severity": "MEDIUM",
+      "description": "HTML forms render client-supplied security parameters into hidden input fields without integrity validation or HMAC protection.",
+      "remediation_example": "<input type='hidden' name='token' value='{{ signed_state }}'>  # cryptographically sign hidden state",
+      "patterns": {
+        "type": "hidden_field_reflection"
+      },
+      "tags": ["tamper", "hidden-fields", "surface"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/472.html"
+      ],
+      "enabled": true
+    }
+  ]
+}

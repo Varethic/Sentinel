@@ -46,6 +46,26 @@
         "https://cwe.mitre.org/data/definitions/1021.html"
       ],
       "enabled": true
+    },
+    {
+      "rule_id": "CLT003",
+      "name": "Unvalidated cross-origin window message listener",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-345",
+      "cve": "CVE-2022-35918",
+      "cve_date": "2022-08-01",
+      "severity": "HIGH",
+      "description": "Window postMessage message event listener registered without verifying event.origin, permitting cross-origin malicious scripts to trigger internal actions.",
+      "remediation_example": "window.addEventListener('message', (e) => { if (e.origin !== 'https://trusted.com') return; ... })  # verify event.origin",
+      "patterns": {
+        "type": "postmessage_origin"
+      },
+      "tags": ["client", "postmessage", "cross-origin"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/345.html"
+      ],
+      "enabled": true
     }
   ]
 }
