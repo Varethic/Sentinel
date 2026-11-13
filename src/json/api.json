@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "analyzer": "api",
+  "title": "API and GraphQL Security Static Analysis Rules",
+  "rules": [
+    {
+      "rule_id": "API001",
+      "name": "GraphQL introspection enabled",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-200",
+      "cve": "CVE-2022-31129",
+      "cve_date": "2022-07-06",
+      "severity": "MEDIUM",
+      "description": "A GraphQL schema or server is constructed with introspection=True (Graphene, Strawberry, Ariadne, graphql-core). Introspection publishes the entire schema - every type, field, argument and deprecation - to any unauthenticated caller, which maps the private API surface for an attacker.",
+      "remediation_example": "schema = graphene.Schema(query=Query)  # keep introspection off in production; expose it only in development",
+      "patterns": {
+        "type": "introspection_sink",
+        "sinks": ["Schema", "GraphQL", "make_executable_schema", "create_app"],
+        "sink_modules": ["graphene", "strawberry", "ariadne", "graphql", "graphql_core"],
+        "introspection_keywords": ["introspection", "introspection_enabled"]
+      },
+      "tags": ["api", "graphql", "disclosure"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/200.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "API002",
+      "name": "Mass assignment from unvalidated request data",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-915",
+      "cve": "CVE-2022-22965",
+      "cve_date": "2022-04-01",
+      "severity": "HIGH",
+      "description": "A model or ORM entity is constructed by unpacking a whole request payload, as in Model(**request.json()) or Model(**await request.json()). Every key the client sends is bound to an attribute, so a caller can set fields the endpoint never intended to expose - role, is_admin, owner_id, balance - which is mass assignment privilege escalation.",
+      "remediation_example": "data = ModelSchema(**await request.json()); User(**data.model_dump(include=FIELDS))  # bind an explicit allow-list of fields",
+      "patterns": {
+        "type": "mass_assignment",
+        "request_sources": ["json", "form", "post", "data", "body", "json_body", "get_json"]
+      },
+      "tags": ["api", "mass-assignment", "orm"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/915.html"
+      ],
+      "enabled": true
+    }
+  ]
+}

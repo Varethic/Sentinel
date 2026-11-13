@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "analyzer": "client",
+  "title": "Client-Side Storage and Reverse Tabnabbing Rules",
+  "rules": [
+    {
+      "rule_id": "CLT001",
+      "name": "Sensitive credential or token stored in client storage",
+      "category": "A04:2021 - Insecure Design",
+      "cwe_id": "CWE-922",
+      "cve": "CVE-2021-3918",
+      "cve_date": "2021-11-04",
+      "severity": "HIGH",
+      "description": "Storing sensitive credentials or tokens (token, jwt, auth, secret, password) inside localStorage.setItem or sessionStorage.setItem in inline <script> blocks.",
+      "remediation_example": "Set-Cookie: session=...; Secure; HttpOnly; SameSite=Strict  # use HttpOnly session cookies instead of client storage",
+      "patterns": {
+        "type": "client_storage",
+        "storage_sinks": ["localStorage.setItem", "sessionStorage.setItem"],
+        "sensitive_tokens": ["token", "jwt", "auth", "secret", "password", "access_token", "api_key", "session_token"]
+      },
+      "tags": ["client", "storage", "tokens", "xss"],
+      "references": [
+        "https://owasp.org/Top10/A04_2021-Insecure_Design/",
+        "https://cwe.mitre.org/data/definitions/922.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CLT002",
+      "name": "Reverse tabnabbing via target=_blank without rel=noopener",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-1021",
+      "cve": "CVE-2020-8127",
+      "cve_date": "2020-02-04",
+      "severity": "MEDIUM",
+      "description": "External <a href=\"https://...\" target=\"_blank\"> links in HTML pages missing rel=\"noopener\" or rel=\"noreferrer\" (Reverse Tabnabbing exposure).",
+      "remediation_example": "<a href=\"https://external.example.com\" target=\"_blank\" rel=\"noopener noreferrer\">  # include rel=noopener",
+      "patterns": {
+        "type": "reverse_tabnabbing",
+        "required_rel": ["noopener", "noreferrer"]
+      },
+      "tags": ["client", "tabnabbing", "html", "surface"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/1021.html"
+      ],
+      "enabled": true
+    }
+  ]
+}

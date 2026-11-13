@@ -78,6 +78,7 @@ def _findings_table(findings: Sequence[Finding], title: str, header_mode: bool =
     table.add_column(caption, no_wrap=True, overflow="ellipsis", width=location_width)
     table.add_column("FINDING", overflow="fold", ratio=3)
     table.add_column("CWE", no_wrap=True, width=8)
+    table.add_column("CVE", no_wrap=True, width=26)
 
     for finding, label in zip(findings, labels, strict=True):
         table.add_row(
@@ -86,6 +87,7 @@ def _findings_table(findings: Sequence[Finding], title: str, header_mode: bool =
             Text(label),
             Text(finding.message, overflow="fold"),
             Text(finding.cwe_id, style="dim"),
+            Text(finding._cve_label(), style="dim"),
         )
     return table
 
@@ -148,6 +150,7 @@ def _remediation_section(findings: Sequence[Finding]) -> Group | None:
             (f"{rule_id}", "bold"),
             (f"  {finding.rule_name}", ""),
             (f"  ({finding.category}, {finding.cwe_id})", "dim"),
+            (f"  {finding._cve_label()}", "dim"),
         )
         lines.append(header)
         if finding.remediation:
@@ -283,6 +286,7 @@ CATEGORY_LABELS: tuple[str, ...] = (
     "headers & cookies",
     "cors & info leak",
     "ssrf & redirects",
+    "stack & shells",
 )
 LABEL_WIDTH: int = max(len(label) for label in CATEGORY_LABELS)
 VULNERABLE_STYLE: str = "bold red"

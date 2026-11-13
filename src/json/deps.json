@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "analyzer": "deps",
+  "title": "Deprecated and Insecure Module Usage Static Analysis Rules",
+  "rules": [
+    {
+      "rule_id": "DEP001",
+      "name": "Import of a deprecated or insecure standard library module",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-477",
+      "cve": "CVE-2021-3177",
+      "cve_date": "2021-01-19",
+      "severity": "MEDIUM",
+      "description": "The module telnetlib, ftplib, imp, cgi or pickletools is imported. These are removed from the standard library in Python 3.11-3.13 or are documented as unsafe: telnetlib and ftplib send credentials in clear text, imp is superseded by importlib and blocks the import system, and cgi has a long history of parsing and injection flaws. pickletools is not a safe loader for untrusted data.",
+      "remediation_example": "import subprocess  # replace telnetlib with paramiko over SSH, ftplib with sftp, imp with importlib, cgi with a maintained web framework",
+      "patterns": {
+        "type": "import_denylist",
+        "modules": ["telnetlib", "ftplib", "imp", "cgi", "pickletools", "asynchat", "asyncore", "smtpd", "distutils"]
+      },
+      "tags": ["dependencies", "deprecated", "legacy"],
+      "references": [
+        "https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/",
+        "https://cwe.mitre.org/data/definitions/477.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "DEP002",
+      "name": "Weak TLS protocol version selected",
+      "category": "A02:2021 - Cryptographic Failures",
+      "cwe_id": "CWE-327",
+      "cve": "CVE-2021-28861",
+      "cve_date": "2022-08-23",
+      "severity": "HIGH",
+      "description": "A TLS context is built with ssl.PROTOCOL_TLSv1, ssl.PROTOCOL_TLSv1_1, ssl.PROTOCOL_SSLv3 or the deprecated ssl.PROTOCOL_SSLv23 alias. TLS 1.0 and 1.1 are withdrawn by RFC 8996 and permit downgrade and padding-oracle attacks; SSLv3 is broken by POODLE.",
+      "remediation_example": "context = ssl.create_default_context()  # negotiates TLS 1.2+; never pin PROTOCOL_TLSv1 or PROTOCOL_SSLv23",
+      "patterns": {
+        "type": "weak_protocol",
+        "attributes": ["PROTOCOL_TLSv1", "PROTOCOL_TLSv1_1", "PROTOCOL_SSLv3", "PROTOCOL_SSLv23"]
+      },
+      "tags": ["tls", "crypto", "deprecated"],
+      "references": [
+        "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/",
+        "https://www.rfc-editor.org/rfc/rfc8996"
+      ],
+      "enabled": true
+    }
+  ]
+}

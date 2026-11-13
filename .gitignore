@@ -38,3 +38,5 @@ Thumbs.db
 # --- Local scratch files ---
 *.tmp
 *.log
+*.html
+pi-session-*.html

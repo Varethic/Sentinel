@@ -13,16 +13,37 @@
       "description": "A value is wrapped in markupsafe.Markup() (or jinja2.Markup()). This marks the string as trusted HTML and disables auto-escaping, so any dynamic content is rendered verbatim into the response.",
       "remediation_example": "from markupsafe import escape\nreturn render_template('page.html', body=escape(user_body))",
       "patterns": {
-        "sinks": ["Markup", "mark_safe", "SafeString", "HTMLString", "literal"],
+        "sinks": [
+          "Markup",
+          "mark_safe",
+          "SafeString",
+          "HTMLString",
+          "literal"
+        ],
         "require_dynamic_argument": true,
-        "dynamic_nodes": ["JoinedStr", "BinOp:Add", "BinOp:Mod", "Call:format", "Name", "Attribute", "Subscript", "Call"]
+        "dynamic_nodes": [
+          "JoinedStr",
+          "BinOp:Add",
+          "BinOp:Mod",
+          "Call:format",
+          "Name",
+          "Attribute",
+          "Subscript",
+          "Call"
+        ]
       },
-      "tags": ["http", "template", "xss"],
+      "tags": [
+        "http",
+        "template",
+        "xss"
+      ],
       "references": [
         "https://owasp.org/Top10/A03_2021-Injection/",
         "https://cwe.mitre.org/data/definitions/79.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2020-11022",
+      "cve_date": "2020-04-29"
     },
     {
       "rule_id": "XSS002",
@@ -33,17 +54,36 @@
       "description": "render_template_string() (or a direct Jinja2 Environment.from_string() call) receives a template whose source is assembled from dynamic values. The value becomes template source, so it can include new template tags and markup that bypass auto-escaping of the outer template.",
       "remediation_example": "return render_template('greeting.html', name=name)",
       "patterns": {
-        "sinks": ["render_template_string", "from_string", "Template"],
+        "sinks": [
+          "render_template_string",
+          "from_string",
+          "Template"
+        ],
         "require_dynamic_argument": true,
-        "dynamic_nodes": ["JoinedStr", "BinOp:Add", "BinOp:Mod", "Call:format", "Name", "Attribute", "Subscript"]
+        "dynamic_nodes": [
+          "JoinedStr",
+          "BinOp:Add",
+          "BinOp:Mod",
+          "Call:format",
+          "Name",
+          "Attribute",
+          "Subscript"
+        ]
       },
-      "tags": ["http", "template", "ssti", "xss"],
+      "tags": [
+        "http",
+        "template",
+        "ssti",
+        "xss"
+      ],
       "references": [
         "https://owasp.org/Top10/A03_2021-Injection/",
         "https://cwe.mitre.org/data/definitions/79.html",
         "https://cwe.mitre.org/data/definitions/1336.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2019-11358",
+      "cve_date": "2019-04-20"
     },
     {
       "rule_id": "XSS003",
@@ -54,16 +94,35 @@
       "description": "Template auto-escaping is turned off (autoescape=False) or HTML output is returned with mark_safe/django.utils.safestring.mark_safe on dynamic data. Disabling the framework's escaping layer makes every subsequent interpolation an XSS candidate.",
       "remediation_example": "render_template('page.html', user=user)  # keep autoescape enabled",
       "patterns": {
-        "sinks": ["mark_safe", "Markup", "safe", "Environment"],
+        "sinks": [
+          "mark_safe",
+          "Markup",
+          "safe",
+          "Environment"
+        ],
         "autoescape_flag": "autoescape",
-        "dynamic_nodes": ["Name", "Attribute", "JoinedStr", "BinOp:Add", "Call:format", "Subscript"]
+        "dynamic_nodes": [
+          "Name",
+          "Attribute",
+          "JoinedStr",
+          "BinOp:Add",
+          "Call:format",
+          "Subscript"
+        ]
       },
-      "tags": ["http", "template", "xss", "misconfiguration"],
+      "tags": [
+        "http",
+        "template",
+        "xss",
+        "misconfiguration"
+      ],
       "references": [
         "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
         "https://cwe.mitre.org/data/definitions/79.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2020-11022",
+      "cve_date": "2020-04-29"
     },
     {
       "rule_id": "XSS004",
@@ -74,17 +133,43 @@
       "description": "An HTTP response body is produced by interpolating values into an HTML string, for example with an f-string or concatenation passed to Response()/HttpResponse()/make_response(). The response declares HTML content type, so interpolated data executes as markup in the browser.",
       "remediation_example": "return Response(render_template('hello.html', name=escape(name)), mimetype='text/html')",
       "patterns": {
-        "sinks": ["Response", "HttpResponse", "make_response", "HTMLResponse", "render_template_string"],
-        "html_markers": ["<html", "<body", "<div", "<p>", "<span", "<script", "<a ", "<!doctype"],
+        "sinks": [
+          "Response",
+          "HttpResponse",
+          "make_response",
+          "HTMLResponse",
+          "render_template_string"
+        ],
+        "html_markers": [
+          "<html",
+          "<body",
+          "<div",
+          "<p>",
+          "<span",
+          "<script",
+          "<a ",
+          "<!doctype"
+        ],
         "require_dynamic_argument": true,
-        "dynamic_nodes": ["JoinedStr", "BinOp:Add", "BinOp:Mod", "Call:format"]
+        "dynamic_nodes": [
+          "JoinedStr",
+          "BinOp:Add",
+          "BinOp:Mod",
+          "Call:format"
+        ]
       },
-      "tags": ["http", "response", "xss"],
+      "tags": [
+        "http",
+        "response",
+        "xss"
+      ],
       "references": [
         "https://owasp.org/Top10/A03_2021-Injection/",
         "https://cwe.mitre.org/data/definitions/79.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2018-1000136",
+      "cve_date": "2018-03-23"
     }
   ]
 }

@@ -20,10 +20,17 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from src.analyzers import api as api_analyzer
 from src.analyzers import auth as auth_analyzer
+from src.analyzers import client as client_analyzer
+from src.analyzers import cloud as cloud_analyzer
 from src.analyzers import cmdi as cmdi_analyzer
+from src.analyzers import deps as deps_analyzer
 from src.analyzers import deserial as deserial_analyzer
 from src.analyzers import headers as headers_analyzer
+from src.analyzers import host as host_analyzer
+from src.analyzers import idor as idor_analyzer
+from src.analyzers import redos as redos_analyzer
 from src.analyzers import secrets as secrets_analyzer
 from src.analyzers import sqli as sqli_analyzer
 from src.analyzers import ssti as ssti_analyzer
@@ -46,10 +53,12 @@ URL_SCHEMES: tuple[str, ...] = ("http://", "https://")
 APP = typer.Typer(
     name=APP_NAME,
     help=(
-        "Defensive web security auditor: static AST analysis across 42 rules "
+        "Defensive web security auditor: static AST analysis across 56 rules "
         "(SQLi, XSS, command injection, path traversal, secrets, SSRF, "
-        "deserialization, XXE, SSTI, auth/TLS) plus passive HTTP header, "
-        "cookie, CORS and redirect auditing. Detection only - no exploitation."
+        "deserialization, XXE, SSTI, auth/TLS, ReDoS, API/GraphQL, deprecated "
+        "modules, host header injection, IDOR, cloud storage, client storage) "
+        "plus passive HTTP header, cookie, CORS, redirect and surface auditing. "
+        "Detection only - no exploitation."
     ),
     add_completion=False,
     no_args_is_help=True,
@@ -82,6 +91,13 @@ def _analyzers() -> list:
         xxe_analyzer,
         ssti_analyzer,
         auth_analyzer,
+        redos_analyzer,
+        api_analyzer,
+        deps_analyzer,
+        host_analyzer,
+        idor_analyzer,
+        cloud_analyzer,
+        client_analyzer,
     ]
 
 
@@ -296,7 +312,7 @@ def _rules(
     ] = None,
     show: Annotated[
         bool,
-        typer.Option("--show", help="List every rule with its severity and CWE."),
+        typer.Option("--show", help="List every rule with severity, CWE, CVE and date."),
     ] = False,
 ) -> None:
     """Validate the JSON rule documents and summarize them."""
@@ -326,9 +342,17 @@ def _rules(
     if show:
         _echo_table(
             "Rules",
-            ("ID", "Severity", "CWE", "Category", "Name"),
+            ("ID", "Severity", "CWE", "CVE", "Published", "Category", "Name"),
             [
-                (rule.rule_id, rule.severity.value, rule.cwe_id, rule.category, rule.name)
+                (
+                    rule.rule_id,
+                    rule.severity.value,
+                    rule.cwe_id,
+                    rule.cve,
+                    rule.cve_date,
+                    rule.category,
+                    rule.name,
+                )
                 for ruleset in sorted(catalog.values(), key=lambda item: item.analyzer)
                 for rule in sorted(ruleset.rules, key=lambda item: item.rule_id)
             ],

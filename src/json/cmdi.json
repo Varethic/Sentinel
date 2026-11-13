@@ -13,16 +13,39 @@
       "description": "os.system() or os.popen() receives a command string assembled with an f-string, '+' concatenation, '%' formatting, str.format() or string.Template. The string is handed to the system shell, so any interpolated value can append extra commands with shell metacharacters such as ;, |, && or $(...).",
       "remediation_example": "subprocess.run(['/usr/bin/convert', user_path, out_path], check=True)",
       "patterns": {
-        "sinks": ["system", "popen", "popen2", "popen3", "popen4", "spawnl", "spawnv"],
-        "sink_modules": ["os", "subprocess", "commands", "popen2"],
-        "dynamic_nodes": ["JoinedStr", "BinOp", "Call"]
+        "sinks": [
+          "system",
+          "popen",
+          "popen2",
+          "popen3",
+          "popen4",
+          "spawnl",
+          "spawnv"
+        ],
+        "sink_modules": [
+          "os",
+          "subprocess",
+          "commands",
+          "popen2"
+        ],
+        "dynamic_nodes": [
+          "JoinedStr",
+          "BinOp",
+          "Call"
+        ]
       },
-      "tags": ["injection", "command", "shell"],
+      "tags": [
+        "injection",
+        "command",
+        "shell"
+      ],
       "references": [
         "https://owasp.org/Top10/A03_2021-Injection/",
         "https://cwe.mitre.org/data/definitions/78.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2021-42740",
+      "cve_date": "2021-10-21"
     },
     {
       "rule_id": "CMDI002",
@@ -42,16 +65,31 @@
           "getoutput",
           "getstatusoutput"
         ],
-        "sink_modules": ["subprocess", "os"],
-        "shell_keywords": ["shell"],
-        "dynamic_nodes": ["JoinedStr", "BinOp", "Call"]
+        "sink_modules": [
+          "subprocess",
+          "os"
+        ],
+        "shell_keywords": [
+          "shell"
+        ],
+        "dynamic_nodes": [
+          "JoinedStr",
+          "BinOp",
+          "Call"
+        ]
       },
-      "tags": ["injection", "command", "subprocess"],
+      "tags": [
+        "injection",
+        "command",
+        "subprocess"
+      ],
       "references": [
         "https://docs.python.org/3/library/subprocess.html#security-considerations",
         "https://cwe.mitre.org/data/definitions/78.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2021-42740",
+      "cve_date": "2021-10-21"
     },
     {
       "rule_id": "CMDI003",
@@ -62,15 +100,33 @@
       "description": "eval() or exec() is called with a value that is not a literal. When the argument is derived from request data, configuration or a database value, an attacker who can influence it achieves arbitrary Python code execution in the auditor process.",
       "remediation_example": "value = ast.literal_eval(payload)  # or a strict allow-list mapping",
       "patterns": {
-        "sinks": ["eval", "exec", "execfile", "compile"],
-        "dynamic_nodes": ["JoinedStr", "BinOp", "Call", "Name", "Attribute", "Subscript"]
+        "sinks": [
+          "eval",
+          "exec",
+          "execfile",
+          "compile"
+        ],
+        "dynamic_nodes": [
+          "JoinedStr",
+          "BinOp",
+          "Call",
+          "Name",
+          "Attribute",
+          "Subscript"
+        ]
       },
-      "tags": ["injection", "code-execution", "dynamic-eval"],
+      "tags": [
+        "injection",
+        "code-execution",
+        "dynamic-eval"
+      ],
       "references": [
         "https://owasp.org/Top10/A03_2021-Injection/",
         "https://cwe.mitre.org/data/definitions/95.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2022-21699",
+      "cve_date": "2022-01-19"
     }
   ]
 }

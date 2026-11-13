@@ -13,7 +13,12 @@
       "description": "A template is compiled from a dynamic value instead of a static string or a template file name (jinja2.Template, flask.render_template_string, django.template.Template, mako.template.Template). Template syntax is executable, so a value derived from request data lets an attacker evaluate expressions and reach the underlying Python objects.",
       "remediation_example": "return render_template('greeting.html', name=name)  # template is a fixed file, data is a variable",
       "patterns": {
-        "sinks": ["Template", "render_template_string", "from_string", "TemplateResponse"],
+        "sinks": [
+          "Template",
+          "render_template_string",
+          "from_string",
+          "TemplateResponse"
+        ],
         "sink_modules": [
           "jinja2",
           "flask",
@@ -24,14 +29,27 @@
           "tornado",
           "bottle"
         ],
-        "dynamic_nodes": ["JoinedStr", "BinOp", "Name", "Attribute", "Subscript", "Call"]
+        "dynamic_nodes": [
+          "JoinedStr",
+          "BinOp",
+          "Name",
+          "Attribute",
+          "Subscript",
+          "Call"
+        ]
       },
-      "tags": ["injection", "template", "ssti"],
+      "tags": [
+        "injection",
+        "template",
+        "ssti"
+      ],
       "references": [
         "https://owasp.org/Top10/A03_2021-Injection/",
         "https://cwe.mitre.org/data/definitions/1336.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2021-29510",
+      "cve_date": "2021-05-13"
     }
   ]
 }

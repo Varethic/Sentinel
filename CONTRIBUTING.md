@@ -60,8 +60,30 @@ Rule documents must satisfy the schema in `src/core/loader.py`:
 
 * `rule_id` matches `^[A-Z]{2,8}\d{3}$` and is unique within its document;
 * `cwe_id` matches `^CWE-\d+$`;
+* `cve` matches `^CVE-\d{4}-\d{4,7}$` and must be a **real, publicly assigned** identifier;
+* `cve_date` is `YYYY-MM-DD`, a real calendar date no earlier than 1999, and must match the
+  CVE's official NVD publication date;
 * `severity` is one of `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`;
 * `analyzer` in the JSON must equal the module's `ANALYZER_NAME` and the filename stem.
+
+#### Sourcing `cve` and `cve_date`
+
+Every rule cites one reference CVE that exemplifies **that rule's own vulnerability class**.
+Do not reuse a well-known identifier for an unrelated class — citing a JNDI-injection CVE on a
+SQL-injection rule is a factual error, not a stylistic one.
+
+The authoritative check is NVD:
+
+```bash
+curl -s "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2022-28346" \
+  | python -c "import json,sys; v=json.load(sys.stdin)['vulnerabilities'][0]['cve']; \
+print(v['id'], v['published'][:10], v['descriptions'][0]['value'][:120])"
+```
+
+Use the `published` field verbatim as `cve_date`. Unauthenticated NVD allows roughly five
+requests per 30 seconds, so space calls out and retry on failure rather than guessing a date.
+When a rule has no well-matched CVE, pick the closest genuine one and prefer a Python-ecosystem
+advisory, since that is the code Sentinel scans.
 
 A new analyzer module must expose these module-level functions:
 

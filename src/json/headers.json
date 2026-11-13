@@ -36,7 +36,9 @@
         "https://owasp.org/www-project-secure-headers/",
         "https://cwe.mitre.org/data/definitions/1021.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2020-11022",
+      "cve_date": "2020-04-29"
     },
     {
       "rule_id": "HDR002",
@@ -64,7 +66,9 @@
         "https://owasp.org/www-project-secure-headers/",
         "https://cwe.mitre.org/data/definitions/319.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2021-21290",
+      "cve_date": "2021-02-08"
     },
     {
       "rule_id": "HDR003",
@@ -88,7 +92,9 @@
         "https://owasp.org/www-project-secure-headers/",
         "https://cwe.mitre.org/data/definitions/693.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2019-7742",
+      "cve_date": "2019-02-12"
     },
     {
       "rule_id": "HDR004",
@@ -118,7 +124,9 @@
         "https://owasp.org/www-project-secure-headers/",
         "https://cwe.mitre.org/data/definitions/1021.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2021-28861",
+      "cve_date": "2022-08-23"
     },
     {
       "rule_id": "HDR005",
@@ -145,7 +153,9 @@
         "https://owasp.org/www-project-secure-headers/",
         "https://cwe.mitre.org/data/definitions/200.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2021-32640",
+      "cve_date": "2021-05-25"
     },
     {
       "rule_id": "HDR006",
@@ -168,7 +178,9 @@
         "https://owasp.org/www-project-secure-headers/",
         "https://cwe.mitre.org/data/definitions/693.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2022-35256",
+      "cve_date": "2022-12-05"
     },
     {
       "rule_id": "HDR007",
@@ -197,7 +209,9 @@
         "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
         "https://cwe.mitre.org/data/definitions/200.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2023-25690",
+      "cve_date": "2023-03-07"
     },
     {
       "rule_id": "HDR008",
@@ -220,7 +234,9 @@
         "https://owasp.org/www-project-secure-headers/",
         "https://cwe.mitre.org/data/definitions/1004.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2018-1000656",
+      "cve_date": "2018-08-20"
     },
     {
       "rule_id": "HDR009",
@@ -243,7 +259,9 @@
         "https://owasp.org/www-project-secure-headers/",
         "https://cwe.mitre.org/data/definitions/614.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2020-28491",
+      "cve_date": "2021-02-18"
     },
     {
       "rule_id": "HDR010",
@@ -270,7 +288,9 @@
         "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
         "https://cwe.mitre.org/data/definitions/1275.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2019-10744",
+      "cve_date": "2019-07-26"
     },
     {
       "rule_id": "HDR011",
@@ -305,7 +325,9 @@
         "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
         "https://cwe.mitre.org/data/definitions/942.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2020-8116",
+      "cve_date": "2020-02-04"
     },
     {
       "rule_id": "HDR012",
@@ -344,7 +366,9 @@
         "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
         "https://cwe.mitre.org/data/definitions/209.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2022-21699",
+      "cve_date": "2022-01-19"
     },
     {
       "rule_id": "HDR013",
@@ -389,7 +413,9 @@
         "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
         "https://cwe.mitre.org/data/definitions/601.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2021-28861",
+      "cve_date": "2022-08-23"
     },
     {
       "rule_id": "HDR014",
@@ -429,7 +455,9 @@
         "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
         "https://cwe.mitre.org/data/definitions/538.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2021-41773",
+      "cve_date": "2021-10-05"
     }
   ]
 }

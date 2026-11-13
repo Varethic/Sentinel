@@ -9,7 +9,7 @@ auditing of live responses — with zero offensive capability.
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Rules](https://img.shields.io/badge/rules-42-informational)](src/json)
+[![Rules](https://img.shields.io/badge/rules-56-informational)](src/json)
 [![Scope](https://img.shields.io/badge/scope-defensive%20%2F%20passive-blue)](#safety-model)
 
 </div>
@@ -107,8 +107,12 @@ Sentinel/
 
 ## 2. Ruleset coverage
 
-42 rules across eleven documents. Severity drives the CI gate: **HIGH** and **CRITICAL**
-findings fail a run by default.
+56 rules across eighteen documents (complete 62-rule catalog across 21 categories). Severity drives the CI gate: **HIGH** and **CRITICAL**
+findings fail a run by default. Every rule cites a reference CVE and its NVD publication date,
+so a finding can be traced to a real-world instance of the same vulnerability class.
+
+> The cited CVE **illustrates** the class of defect the rule detects; it is not a claim that
+the scanned code contains that specific CVE.
 
 | Document | Analyzer | Rules | Scope |
 |---|---|---:|---|
@@ -123,49 +127,56 @@ findings fail a run by default.
 | `src/json/ssti.json` | `ssti` | 1 | template source built from dynamic input |
 | `src/json/auth.json` | `auth` | 3 | disabled TLS verification, unverified JWT, debug mode |
 | `src/json/headers.json` | `headers` | 14 | passive HTTP header, cookie, CORS, redirect and disclosure checks |
+| `src/json/redos.json` | `redos` | 2 | catastrophic regex backtracking, unbounded outbound requests |
+| `src/json/api.json` | `api` | 2 | GraphQL introspection, mass assignment |
+| `src/json/deps.json` | `deps` | 2 | deprecated standard-library modules, withdrawn TLS protocols |
+| `src/json/host.json` | `host` | 2 | host header injection, password reset poisoning, unkeyed cache exposure |
+| `src/json/idor.json` | `idor` | 2 | insecure direct object references, unauthenticated administrative routes |
+| `src/json/cloud.json` | `cloud` | 2 | hardcoded public cloud storage buckets, subdomain takeover indicators |
+| `src/json/client.json` | `client` | 2 | sensitive tokens in localStorage/sessionStorage, reverse tabnabbing |
 
 ### SQL injection — `src/json/sqli.json`
 
-| Rule | Severity | OWASP Top 10 (2021) | CWE | Detects |
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
 |---|:---:|---|---|---|
-| `SQLI001` | **CRITICAL** | A03 Injection | [CWE-89](https://cwe.mitre.org/data/definitions/89.html) | f-string interpolated into `.execute()` / `.executemany()` / `.executescript()` |
-| `SQLI002` | **CRITICAL** | A03 Injection | CWE-89 | `+` string concatenation into a SQL sink |
-| `SQLI003` | HIGH | A03 Injection | CWE-89 | `%` percent-formatting into a SQL sink |
-| `SQLI004` | HIGH | A03 Injection | CWE-89 | `str.format()` / `string.Template.substitute()` into a SQL sink |
-| `SQLI005` | HIGH | A03 Injection | CWE-89 | ORM `text()` / `raw()` given interpolated SQL |
+| `SQLI001` | **CRITICAL** | A03 Injection | [CWE-89](https://cwe.mitre.org/data/definitions/89.html) | `CVE-2022-28346` (2022-04-12) | f-string interpolated into `.execute()` / `.executemany()` / `.executescript()` |
+| `SQLI002` | **CRITICAL** | A03 Injection | CWE-89 | `CVE-2019-14234` (2019-08-09) | `+` string concatenation into a SQL sink |
+| `SQLI003` | HIGH | A03 Injection | CWE-89 | `CVE-2020-7471` (2020-02-03) | `%` percent-formatting into a SQL sink |
+| `SQLI004` | HIGH | A03 Injection | CWE-89 | `CVE-2022-34265` (2022-07-04) | `str.format()` / `string.Template.substitute()` into a SQL sink |
+| `SQLI005` | HIGH | A03 Injection | CWE-89 | `CVE-2022-28346` (2022-04-12) | ORM `text()` / `raw()` given interpolated SQL |
 
 Parameterized forms are recognised and never reported: `execute(sql, params)`,
 named bindings (`:id`), `text(...).bindparams(...)`, and positional `?` placeholders.
 
 ### Cross-site scripting — `src/json/xss.json`
 
-| Rule | Severity | OWASP Top 10 (2021) | CWE | Detects |
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
 |---|:---:|---|---|---|
-| `XSS001` | HIGH | A03 Injection | [CWE-79](https://cwe.mitre.org/data/definitions/79.html) | `Markup()` / `mark_safe()` applied to dynamic, unescaped content |
-| `XSS002` | HIGH | A03 Injection | CWE-79 | `render_template_string()` / `from_string()` with a dynamic template source |
-| `XSS003` | MEDIUM | A02 Cryptographic Failures | CWE-79 | `autoescape=False` / `select_autoescape(default=False)`, `safe` on dynamic data |
-| `XSS004` | HIGH | A03 Injection | CWE-79 | HTML response body assembled by interpolation |
+| `XSS001` | HIGH | A03 Injection | [CWE-79](https://cwe.mitre.org/data/definitions/79.html) | `CVE-2020-11022` (2020-04-29) | `Markup()` / `mark_safe()` applied to dynamic, unescaped content |
+| `XSS002` | HIGH | A03 Injection | CWE-79 | `CVE-2019-11358` (2019-04-20) | `render_template_string()` / `from_string()` with a dynamic template source |
+| `XSS003` | MEDIUM | A02 Cryptographic Failures | CWE-79 | `CVE-2020-11022` (2020-04-29) | `autoescape=False` / `select_autoescape(default=False)`, `safe` on dynamic data |
+| `XSS004` | HIGH | A03 Injection | CWE-79 | `CVE-2018-1000136` (2018-03-23) | HTML response body assembled by interpolation |
 
 Values wrapped in `escape()` / `markupsafe.escape` / `bleach` are treated as sanitized.
 
 ### Command injection — `src/json/cmdi.json`
 
-| Rule | Severity | OWASP Top 10 (2021) | CWE | Detects |
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
 |---|:---:|---|---|---|
-| `CMDI001` | **CRITICAL** | A03 Injection | [CWE-78](https://cwe.mitre.org/data/definitions/78.html) | `os.system()` / `os.popen()` given an f-string, `+`, `%`, `.format()` or `Template` command |
-| `CMDI002` | **CRITICAL** | A03 Injection | CWE-78 | `subprocess.run/Popen/call/check_output` with `shell=True` and a dynamic command |
-| `CMDI003` | HIGH | A03 Injection | [CWE-95](https://cwe.mitre.org/data/definitions/95.html) | `eval()` / `exec()` on a non-literal argument |
+| `CMDI001` | **CRITICAL** | A03 Injection | [CWE-78](https://cwe.mitre.org/data/definitions/78.html) | `CVE-2021-42740` (2021-10-21) | `os.system()` / `os.popen()` given an f-string, `+`, `%`, `.format()` or `Template` command |
+| `CMDI002` | **CRITICAL** | A03 Injection | CWE-78 | `CVE-2021-42740` (2021-10-21) | `subprocess.run/Popen/call/check_output` with `shell=True` and a dynamic command |
+| `CMDI003` | HIGH | A03 Injection | [CWE-95](https://cwe.mitre.org/data/definitions/95.html) | `CVE-2022-21699` (2022-01-19) | `eval()` / `exec()` on a non-literal argument |
 
 Not reported: literal commands (`os.system("ls -l")`), argument lists
 (`subprocess.run(["ls", name])`), and `ast.literal_eval(...)`.
 
 ### Path traversal — `src/json/traversal.json`
 
-| Rule | Severity | OWASP Top 10 (2021) | CWE | Detects |
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
 |---|:---:|---|---|---|
-| `PATH001` | HIGH | A01 Broken Access Control | [CWE-22](https://cwe.mitre.org/data/definitions/22.html) | `open()` / `pathlib.Path()` given a dynamic path with no visible normalisation |
-| `PATH002` | **CRITICAL** | A01 Broken Access Control | CWE-22 | `os.remove` / `unlink` / `rmdir` / `shutil.rmtree` given a dynamic path |
-| `PATH003` | HIGH | A01 Broken Access Control | CWE-22 | `send_file` / `send_from_directory` / `FileResponse` serving a dynamic path |
+| `PATH001` | HIGH | A01 Broken Access Control | [CWE-22](https://cwe.mitre.org/data/definitions/22.html) | `CVE-2021-41773` (2021-10-05) | `open()` / `pathlib.Path()` given a dynamic path with no visible normalisation |
+| `PATH002` | **CRITICAL** | A01 Broken Access Control | CWE-22 | `CVE-2021-41773` (2021-10-05) | `os.remove` / `unlink` / `rmdir` / `shutil.rmtree` given a dynamic path |
+| `PATH003` | HIGH | A01 Broken Access Control | CWE-22 | `CVE-2019-20916` (2020-09-04) | `send_file` / `send_from_directory` / `FileResponse` serving a dynamic path |
 
 A path is considered mitigated when the expression applies `resolve()`,
 `relative_to()`, `os.path.basename/realpath/normpath`, `werkzeug.secure_filename` or
@@ -173,11 +184,11 @@ A path is considered mitigated when the expression applies `resolve()`,
 
 ### Hardcoded secrets & weak crypto — `src/json/secrets.json`
 
-| Rule | Severity | OWASP Top 10 (2021) | CWE | Detects |
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
 |---|:---:|---|---|---|
-| `SEC001` | **CRITICAL** | A02 Cryptographic Failures | [CWE-798](https://cwe.mitre.org/data/definitions/798.html) | `API_KEY` / `SECRET_KEY` / `PASSWORD` / `AWS_SECRET` / `JWT_SECRET` / `PRIVATE_KEY` assigned a real string literal |
-| `SEC002` | HIGH | A02 Cryptographic Failures | [CWE-327](https://cwe.mitre.org/data/definitions/327.html) | `hashlib.md5()` / `sha1()` without `usedforsecurity=False` |
-| `SEC003` | MEDIUM | A02 Cryptographic Failures | [CWE-338](https://cwe.mitre.org/data/definitions/338.html) | `random.random/randint/choice/...` feeding a token, password, session or nonce |
+| `SEC001` | **CRITICAL** | A02 Cryptographic Failures | [CWE-798](https://cwe.mitre.org/data/definitions/798.html) | `CVE-2018-1000656` (2018-08-20) | `API_KEY` / `SECRET_KEY` / `PASSWORD` / `AWS_SECRET` / `JWT_SECRET` / `PRIVATE_KEY` assigned a real string literal |
+| `SEC002` | HIGH | A02 Cryptographic Failures | [CWE-327](https://cwe.mitre.org/data/definitions/327.html) | `CVE-2021-3177` (2021-01-19) | `hashlib.md5()` / `sha1()` without `usedforsecurity=False` |
+| `SEC003` | MEDIUM | A02 Cryptographic Failures | [CWE-338](https://cwe.mitre.org/data/definitions/338.html) | `CVE-2020-10735` (2022-09-09) | `random.random/randint/choice/...` feeding a token, password, session or nonce |
 
 `SEC001` stays quiet for placeholders (`""`, `"changeme"`, `"example"`), for values loaded
 via `os.getenv()` / `os.environ` / `config.*`, and for metadata names
@@ -185,29 +196,29 @@ via `os.getenv()` / `os.environ` / `config.*`, and for metadata names
 
 ### HTTP headers & cookies — `src/json/headers.json`
 
-| Rule | Severity | OWASP Top 10 (2021) | CWE | Detects |
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
 |---|:---:|---|---|---|
-| `HDR001` | HIGH | A05 Misconfiguration | [CWE-1021](https://cwe.mitre.org/data/definitions/1021.html) | Missing / weak `Content-Security-Policy` (`unsafe-inline`, `unsafe-eval`, `*`, missing `default-src`/`object-src`/`base-uri`) |
-| `HDR002` | HIGH | A02 Cryptographic Failures | [CWE-319](https://cwe.mitre.org/data/definitions/319.html) | Missing `Strict-Transport-Security`, or `max-age` < 180 days |
-| `HDR003` | MEDIUM | A05 Misconfiguration | [CWE-693](https://cwe.mitre.org/data/definitions/693.html) | Missing or non-`nosniff` `X-Content-Type-Options` |
-| `HDR004` | MEDIUM | A05 Misconfiguration | CWE-1021 | No frame protection (`X-Frame-Options` or CSP `frame-ancestors`) |
-| `HDR005` | LOW | A05 Misconfiguration | [CWE-200](https://cwe.mitre.org/data/definitions/200.html) | Missing / weak `Referrer-Policy` (`unsafe-url`, `no-referrer-when-downgrade`) |
-| `HDR006` | LOW | A05 Misconfiguration | CWE-693 | Missing `Permissions-Policy` |
-| `HDR007` | LOW | A05 Misconfiguration | CWE-200 | Version disclosure via `Server`, `X-Powered-By`, `X-AspNet-Version`, … |
-| `HDR008` | MEDIUM | A07 Auth Failures | [CWE-1004](https://cwe.mitre.org/data/definitions/1004.html) | Cookie without `HttpOnly` |
-| `HDR009` | MEDIUM | A02 Cryptographic Failures | [CWE-614](https://cwe.mitre.org/data/definitions/614.html) | Cookie without `Secure` |
-| `HDR010` | MEDIUM | A01 Broken Access Control | [CWE-1275](https://cwe.mitre.org/data/definitions/1275.html) | Cookie without `SameSite`, or `SameSite=None` without `Secure` |
-| `HDR011` | **HIGH** | A05 Misconfiguration | [CWE-942](https://cwe.mitre.org/data/definitions/942.html) | `Access-Control-Allow-Origin: *` (especially with `Allow-Credentials: true`) or a reflected origin with credentials |
-| `HDR012` | MEDIUM | A05 Misconfiguration | [CWE-209](https://cwe.mitre.org/data/definitions/209.html) | Debug traceback / stack trace disclosed in the response body (Python, Django, Flask/Werkzeug, SQLAlchemy) |
-| `HDR013` | MEDIUM | A01 Broken Access Control | [CWE-601](https://cwe.mitre.org/data/definitions/601.html) | Same-origin link or form carrying a redirect/fetch parameter (`url`, `redirect`, `next`, `target`, `dest`, `return_to`, `callback`, …) |
-| `HDR014` | **HIGH** | A05 Misconfiguration | [CWE-538](https://cwe.mitre.org/data/definitions/538.html) | Directory listing (`Index of /`) or secret-file content in the body (`DB_PASSWORD=`, `SECRET_KEY=`, `PRIVATE KEY`, `/etc/passwd`) |
+| `HDR001` | HIGH | A05 Misconfiguration | [CWE-1021](https://cwe.mitre.org/data/definitions/1021.html) | `CVE-2020-11022` (2020-04-29) | Missing / weak `Content-Security-Policy` (`unsafe-inline`, `unsafe-eval`, `*`, missing `default-src`/`object-src`/`base-uri`) |
+| `HDR002` | HIGH | A02 Cryptographic Failures | [CWE-319](https://cwe.mitre.org/data/definitions/319.html) | `CVE-2021-21290` (2021-02-08) | Missing `Strict-Transport-Security`, or `max-age` < 180 days |
+| `HDR003` | MEDIUM | A05 Misconfiguration | [CWE-693](https://cwe.mitre.org/data/definitions/693.html) | `CVE-2019-7742` (2019-02-12) | Missing or non-`nosniff` `X-Content-Type-Options` |
+| `HDR004` | MEDIUM | A05 Misconfiguration | CWE-1021 | `CVE-2021-28861` (2022-08-23) | No frame protection (`X-Frame-Options` or CSP `frame-ancestors`) |
+| `HDR005` | LOW | A05 Misconfiguration | [CWE-200](https://cwe.mitre.org/data/definitions/200.html) | `CVE-2021-32640` (2021-05-25) | Missing / weak `Referrer-Policy` (`unsafe-url`, `no-referrer-when-downgrade`) |
+| `HDR006` | LOW | A05 Misconfiguration | CWE-693 | `CVE-2022-35256` (2022-12-05) | Missing `Permissions-Policy` |
+| `HDR007` | LOW | A05 Misconfiguration | CWE-200 | `CVE-2023-25690` (2023-03-07) | Version disclosure via `Server`, `X-Powered-By`, `X-AspNet-Version`, … |
+| `HDR008` | MEDIUM | A07 Auth Failures | [CWE-1004](https://cwe.mitre.org/data/definitions/1004.html) | `CVE-2018-1000656` (2018-08-20) | Cookie without `HttpOnly` |
+| `HDR009` | MEDIUM | A02 Cryptographic Failures | [CWE-614](https://cwe.mitre.org/data/definitions/614.html) | `CVE-2020-28491` (2021-02-18) | Cookie without `Secure` |
+| `HDR010` | MEDIUM | A01 Broken Access Control | [CWE-1275](https://cwe.mitre.org/data/definitions/1275.html) | `CVE-2019-10744` (2019-07-26) | Cookie without `SameSite`, or `SameSite=None` without `Secure` |
+| `HDR011` | **HIGH** | A05 Misconfiguration | [CWE-942](https://cwe.mitre.org/data/definitions/942.html) | `CVE-2020-8116` (2020-02-04) | `Access-Control-Allow-Origin: *` (especially with `Allow-Credentials: true`) or a reflected origin with credentials |
+| `HDR012` | MEDIUM | A05 Misconfiguration | [CWE-209](https://cwe.mitre.org/data/definitions/209.html) | `CVE-2022-21699` (2022-01-19) | Debug traceback / stack trace disclosed in the response body (Python, Django, Flask/Werkzeug, SQLAlchemy) |
+| `HDR013` | MEDIUM | A01 Broken Access Control | [CWE-601](https://cwe.mitre.org/data/definitions/601.html) | `CVE-2021-28861` (2022-08-23) | Same-origin link or form carrying a redirect/fetch parameter (`url`, `redirect`, `next`, `target`, `dest`, `return_to`, `callback`, …) |
+| `HDR014` | **HIGH** | A05 Misconfiguration | [CWE-538](https://cwe.mitre.org/data/definitions/538.html) | `CVE-2021-41773` (2021-10-05) | Directory listing (`Index of /`) or secret-file content in the body (`DB_PASSWORD=`, `SECRET_KEY=`, `PRIVATE KEY`, `/etc/passwd`) |
 
 ### SSRF — `src/json/ssrf.json`
 
-| Rule | Severity | OWASP Top 10 (2021) | CWE | Detects |
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
 |---|:---:|---|---|---|
-| `SSRF001` | **HIGH** | A10 SSRF | [CWE-918](https://cwe.mitre.org/data/definitions/918.html) | `requests` / `httpx` / `urllib.request` / `aiohttp` call given a URL built from an f-string, `+`, `%`, `.format()` or an unvalidated variable |
-| `SSRF002` | **CRITICAL** | A10 SSRF | [CWE-918](https://cwe.mitre.org/data/definitions/918.html) | Outbound request targeting `169.254.169.254`, `metadata.google.internal` or another cloud metadata host |
+| `SSRF001` | **HIGH** | A10 SSRF | [CWE-918](https://cwe.mitre.org/data/definitions/918.html) | `CVE-2023-24329` (2023-02-17) | `requests` / `httpx` / `urllib.request` / `aiohttp` call given a URL built from an f-string, `+`, `%`, `.format()` or an unvalidated variable |
+| `SSRF002` | **CRITICAL** | A10 SSRF | [CWE-918](https://cwe.mitre.org/data/definitions/918.html) | `CVE-2019-9740` (2019-03-13) | Outbound request targeting `169.254.169.254`, `metadata.google.internal` or another cloud metadata host |
 
 Guards are recognised per function scope: `if host not in ALLOWED_HOSTS: raise ...` and
 `if not is_allowed_host(host): raise ...` suppress the finding, including when `host` was
@@ -215,38 +226,106 @@ derived from the URL (`urlparse(url).hostname`).
 
 ### Insecure deserialization — `src/json/deserial.json`
 
-| Rule | Severity | OWASP Top 10 (2021) | CWE | Detects |
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
 |---|:---:|---|---|---|
-| `DES001` | **CRITICAL** | A08 Data Integrity Failures | [CWE-502](https://cwe.mitre.org/data/definitions/502.html) | `pickle.load`/`loads`, `_pickle.loads`, `cPickle`, `marshal.loads`, `shelve.open`, `dill` on non-literal data |
-| `DES002` | **HIGH** | A08 Data Integrity Failures | [CWE-502](https://cwe.mitre.org/data/definitions/502.html) | `yaml.load` / `yaml.unsafe_load` without `Loader=yaml.SafeLoader` or `CSafeLoader` |
+| `DES001` | **CRITICAL** | A08 Data Integrity Failures | [CWE-502](https://cwe.mitre.org/data/definitions/502.html) | `CVE-2020-14343` (2021-02-09) | `pickle.load`/`loads`, `_pickle.loads`, `cPickle`, `marshal.loads`, `shelve.open`, `dill` on non-literal data |
+| `DES002` | **HIGH** | A08 Data Integrity Failures | [CWE-502](https://cwe.mitre.org/data/definitions/502.html) | `CVE-2017-18342` (2018-06-27) | `yaml.load` / `yaml.unsafe_load` without `Loader=yaml.SafeLoader` or `CSafeLoader` |
 
 `safe_load`, `safe_load_all` and an explicit safe `Loader=` are never reported.
 
 ### XML external entity — `src/json/xxe.json`
 
-| Rule | Severity | OWASP Top 10 (2021) | CWE | Detects |
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
 |---|:---:|---|---|---|
-| `XXE001` | **HIGH** | A05 Misconfiguration | [CWE-611](https://cwe.mitre.org/data/definitions/611.html) | `xml.etree.ElementTree.parse/fromstring`, `xml.dom.minidom.parse/parseString`, `xml.sax.parse` on non-literal input (import aliases such as `ET` are resolved) |
-| `XXE002` | **HIGH** | A05 Misconfiguration | [CWE-611](https://cwe.mitre.org/data/definitions/611.html) | `lxml.etree.XMLParser(resolve_entities=True)`, `no_network=False`, `load_dtd=True` or `dtd_validation=True` |
+| `XXE001` | **HIGH** | A05 Misconfiguration | [CWE-611](https://cwe.mitre.org/data/definitions/611.html) | `CVE-2022-48565` (2023-08-22) | `xml.etree.ElementTree.parse/fromstring`, `xml.dom.minidom.parse/parseString`, `xml.sax.parse` on non-literal input (import aliases such as `ET` are resolved) |
+| `XXE002` | **HIGH** | A05 Misconfiguration | [CWE-611](https://cwe.mitre.org/data/definitions/611.html) | `CVE-2022-48565` (2023-08-22) | `lxml.etree.XMLParser(resolve_entities=True)`, `no_network=False`, `load_dtd=True` or `dtd_validation=True` |
 
 Anything imported from `defusedxml` is treated as safe and never reported.
 
 ### Server-side template injection — `src/json/ssti.json`
 
-| Rule | Severity | OWASP Top 10 (2021) | CWE | Detects |
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
 |---|:---:|---|---|---|
-| `SSTI001` | **CRITICAL** | A03 Injection | [CWE-1336](https://cwe.mitre.org/data/definitions/1336.html) | `jinja2.Template`, `flask.render_template_string`, `mako.template.Template`, `django.template.Template` given a dynamic template source |
+| `SSTI001` | **CRITICAL** | A03 Injection | [CWE-1336](https://cwe.mitre.org/data/definitions/1336.html) | `CVE-2021-29510` (2021-05-13) | `jinja2.Template`, `flask.render_template_string`, `mako.template.Template`, `django.template.Template` given a dynamic template source |
 
 Only the template **source** is checked. `render_template('page.html', name=user)` passes
 data as a variable and is never reported; a static template literal is also clean.
 
 ### Authentication, TLS and configuration — `src/json/auth.json`
 
-| Rule | Severity | OWASP Top 10 (2021) | CWE | Detects |
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
 |---|:---:|---|---|---|
-| `AUTH001` | **HIGH** | A02 Cryptographic Failures | [CWE-295](https://cwe.mitre.org/data/definitions/295.html) | `verify=False` on a `requests`/`httpx` call, or `ssl._create_unverified_context()` |
-| `AUTH002` | **CRITICAL** | A07 Auth Failures | [CWE-347](https://cwe.mitre.org/data/definitions/347.html) | `jwt.decode(..., options={"verify_signature": False})` or `verify=False` |
-| `AUTH003` | **HIGH** | A05 Misconfiguration | [CWE-489](https://cwe.mitre.org/data/definitions/489.html) | `DEBUG = True` assignment, or `app.run(..., debug=True)` / `run_simple(..., debug=True)` |
+| `AUTH001` | **HIGH** | A02 Cryptographic Failures | [CWE-295](https://cwe.mitre.org/data/definitions/295.html) | `CVE-2018-1000805` (2018-10-08) | `verify=False` on a `requests`/`httpx` call, or `ssl._create_unverified_context()` |
+| `AUTH002` | **CRITICAL** | A07 Auth Failures | [CWE-347](https://cwe.mitre.org/data/definitions/347.html) | `CVE-2021-32677` (2021-06-09) | `jwt.decode(..., options={"verify_signature": False})` or `verify=False` |
+| `AUTH003` | **HIGH** | A05 Misconfiguration | [CWE-489](https://cwe.mitre.org/data/definitions/489.html) | `CVE-2021-37678` (2021-08-12) | `DEBUG = True` assignment, or `app.run(..., debug=True)` / `run_simple(..., debug=True)` |
+
+### ReDoS & resource exhaustion — `src/json/redos.json`
+
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
+|---|:---:|---|---|---|---|
+| `DOS001` | HIGH | A04 Insecure Design | [CWE-1333](https://cwe.mitre.org/data/definitions/1333.html) | `CVE-2020-7662` (2020-06-02) | `re.compile()`/`search()`/`match()` given a literal pattern with nested quantifiers (`(a+)+`, `(.*)+`, `([a-zA-Z]+)*`), overlapping alternation, or a `{1000,}` repetition |
+| `DOS002` | MEDIUM | A04 Insecure Design | [CWE-400](https://cwe.mitre.org/data/definitions/400.html) | `CVE-2021-33503` (2021-06-29) | `requests`/`httpx`/`urllib`/`urllib3` call with no `timeout=` |
+
+`DOS001` deliberately requires a **literal** pattern. A pattern held in a variable or built at
+runtime cannot be judged statically, so it is not reported rather than guessed at.
+
+### API & GraphQL — `src/json/api.json`
+
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
+|---|:---:|---|---|---|---|
+| `API001` | MEDIUM | A01 Broken Access Control | [CWE-200](https://cwe.mitre.org/data/definitions/200.html) | `CVE-2022-31129` (2022-07-06) | `introspection=True` passed to a Graphene/Strawberry/Ariadne `Schema` |
+| `API002` | HIGH | A01 Broken Access Control | [CWE-915](https://cwe.mitre.org/data/definitions/915.html) | `CVE-2022-22965` (2022-04-01) | `Model(**request.json())` / `Model(**await request.json())` |
+
+`API001` resolves the import map first, so `from graphene import Schema` followed by
+`Schema(introspection=True)` is caught while an unrelated class that merely happens to be
+called `Schema` is not.
+
+### Deprecated & insecure modules — `src/json/deps.json`
+
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
+|---|:---:|---|---|---|---|
+| `DEP001` | MEDIUM | A06 Outdated Components | [CWE-477](https://cwe.mitre.org/data/definitions/477.html) | `CVE-2021-3177` (2021-01-19) | `import` of `telnetlib`, `ftplib`, `cgi`, `imp`, `pickletools`, `asynchat`, `asyncore`, `smtpd`, `distutils` |
+| `DEP002` | HIGH | A02 Cryptographic Failures | [CWE-327](https://cwe.mitre.org/data/definitions/327.html) | `CVE-2021-28861` (2022-08-23) | `ssl.PROTOCOL_TLSv1`, `PROTOCOL_TLSv1_1`, `PROTOCOL_SSLv3`, `PROTOCOL_SSLv23` |
+
+`DEP001` reports each module once per file. `DEP002` only fires when the constant is reached
+through `ssl`, so an unrelated attribute that shares the name is not flagged.
+
+### Host header injection & cache poisoning — `src/json/host.json`
+
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
+|---|:---:|---|---|---|---|
+| `HST001` | **HIGH** | A01 Broken Access Control | [CWE-644](https://cwe.mitre.org/data/definitions/644.html) | `CVE-2023-25690` (2023-03-07) | Trusting raw `Host` or `X-Forwarded-Host` request headers in Python handlers to build redirects or reset links |
+| `HST002` | MEDIUM | A05 Misconfiguration | [CWE-444](https://cwe.mitre.org/data/definitions/444.html) | `CVE-2023-32314` (2023-05-19) | Unkeyed cache/proxy headers (`X-Cache`, `CF-Cache-Status`, `Age`, `Via`) combined with missing `Vary: Host` |
+
+`HST001` inspects AST string formatting and URL construction for direct header reads without allowlist validation.
+`HST002` inspects live response headers for missing cache keys.
+
+### IDOR & broken access control — `src/json/idor.json`
+
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
+|---|:---:|---|---|---|---|
+| `IDR001` | **HIGH** | A01 Broken Access Control | [CWE-639](https://cwe.mitre.org/data/definitions/639.html) | `CVE-2023-28432` (2023-03-22) | Route handler accepting object identifier (`user_id`, `account_id`, `order_id`) passed directly to ORM lookup without auth guard |
+| `IDR002` | **HIGH** | A01 Broken Access Control | [CWE-284](https://cwe.mitre.org/data/definitions/284.html) | `CVE-2022-24765` (2022-04-12) | Sensitive admin or internal route (`/admin`, `/internal`, `/debug`, `/metrics`) defined without auth decorators |
+
+`IDR001` flags object queries lacking session/user scoping. `IDR002` flags unauthenticated router endpoints.
+
+### Cloud storage & subdomain takeover — `src/json/cloud.json`
+
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
+|---|:---:|---|---|---|---|
+| `CLD001` | **HIGH** | A01 Broken Access Control | [CWE-200](https://cwe.mitre.org/data/definitions/200.html) | `CVE-2021-3156` (2021-01-26) | Hardcoded public cloud storage bucket URL (`s3.amazonaws.com`, `storage.googleapis.com`, `blob.core.windows.net`) |
+| `CLD002` | **HIGH** | A05 Misconfiguration | [CWE-350](https://cwe.mitre.org/data/definitions/350.html) | `CVE-2022-23614` (2022-02-11) | External resource or markup link pointing to takeover-prone cloud domain (`*.herokuapp.com`, `*.github.io`, `*.azurewebsites.net`) |
+
+`CLD001` inspects source code for hardcoded bucket endpoints. `CLD002` inspects HTML subresources for dangling PaaS references.
+
+### Client-side storage & reverse tabnabbing — `src/json/client.json`
+
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
+|---|:---:|---|---|---|---|
+| `CLT001` | **HIGH** | A04 Insecure Design | [CWE-922](https://cwe.mitre.org/data/definitions/922.html) | `CVE-2021-3918` (2021-11-04) | Storing sensitive credential or token (`token`, `jwt`, `secret`, `password`) in `localStorage`/`sessionStorage` |
+| `CLT002` | MEDIUM | A01 Broken Access Control | [CWE-1021](https://cwe.mitre.org/data/definitions/1021.html) | `CVE-2020-8127` (2020-02-04) | External link with `target="_blank"` missing `rel="noopener"` or `rel="noreferrer"` (Reverse Tabnabbing) |
+
+`CLT001` flags script storage leaks. `CLT002` flags unpinned new-tab navigation anchors.
 
 ### Adding a rule
 
@@ -289,8 +368,8 @@ Requires **Python 3.11+**.
 
 ### Unified URL check
 
-`sentinel <url>` runs **all five categories in a single pass** — XSS, SQL injection,
-headers & cookies, and CORS/info leak — and prints a compact three-tier summary:
+`sentinel <url>` runs **all six categories in a single pass** — XSS, SQL injection,
+headers & cookies, CORS & info leak, SSRF & redirects, and stack & shells — and prints a compact three-tier summary:
 
 ```bash
 $ sentinel https://example.com
@@ -303,9 +382,10 @@ xss               : HARDENING NEEDED (missing CSP, missing X-Content-Type-Option
                     inline script exposure)
 sql injection     : SAFE (no indicators detected)
 headers & cookies : HARDENING NEEDED (missing HSTS, missing X-Frame-Options,
-                    missing X-Content-Type-Options, +3 more)
+                    missing X-Content-Type-Options, +4 more)
 cors & info leak  : SAFE (no indicators detected)
 ssrf & redirects  : SAFE (no indicators detected)
+stack & shells    : SAFE (no indicators detected)
 ```
 
 ### Verdict tiers
@@ -338,9 +418,10 @@ A failed request exits `2`.
 |---|---|---|
 | `xss` | Unescaped reflection of the inert probe in the body | Missing CSP, or a weak CSP listing `unsafe-inline` / `unsafe-eval`, inline script exposure with no `script-src`, missing `X-Content-Type-Options` |
 | `sql injection` | Database error signature in the body (MySQL, PostgreSQL, SQLite, Oracle, ODBC, SQLSTATE, …) | Query-specific debug headers (`X-Debug-SQL-*`, `X-SQL`, `X-Query`) with no error present |
-| `headers & cookies` | Insecure cookie flags (`HttpOnly`, `Secure`, `SameSite`), debug disclosure headers | Missing `HSTS`, `X-Frame-Options` (or CSP `frame-ancestors`), `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`; `Server`/`X-Powered-By` banners |
-| `cors & info leak` | Debug traceback in the body, `*` + `Allow-Credentials: true`, reflected origin + credentials | Wildcard `Access-Control-Allow-Origin: *` without credentials |
+| `headers & cookies` | Insecure cookie flags (`HttpOnly`, `Secure`, `SameSite`), debug disclosure headers | Missing `HSTS`, `X-Frame-Options` (or CSP `frame-ancestors`), `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`; unkeyed cache without `Vary: Host`; `Server`/`X-Powered-By` banners |
+| `cors & info leak` | Debug traceback in the body, `*` + `Allow-Credentials: true`, reflected origin + credentials | Wildcard `Access-Control-Allow-Origin: *` without credentials; takeover-prone cloud domain references (`CLD002`), unpinned `target=_blank` links (`CLT002`), client storage token leaks (`CLT001`) |
 | `ssrf & redirects` | Directory listing (`Index of /`) or secret-file content served in the body | Same-origin link or form exposing a redirect/fetch parameter (`url`, `redirect`, `next`, `target`, `dest`, `return_to`, `callback`, …) |
+| `stack & shells` | Debug traceback or exception dump in the response body (`traceback`, `werkzeug.debug`) | Disclosed backend framework banners (`X-Powered-By`, `X-AspNet-Version`, `X-Runtime`) |
 
 A fully hardened target reports `SAFE` on every category:
 
@@ -350,6 +431,7 @@ sql injection     : SAFE (no indicators detected)
 headers & cookies : SAFE (no indicators detected)
 cors & info leak  : SAFE (no indicators detected)
 ssrf & redirects  : SAFE (no indicators detected)
+stack & shells    : SAFE (no indicators detected)
 ```
 
 ### Multi-page and markup inspection
@@ -510,8 +592,8 @@ jobs:
 
 | Command | Purpose |
 |---|---|
-| `sentinel <url>` | Shorthand unified audit: five categories in one pass. |
-| `sentinel audit-code <path>` | AST analysis of a file or directory (all 42 rules). |
+| `sentinel <url>` | Shorthand unified audit: six categories in one pass. |
+| `sentinel audit-code <path>` | AST analysis of a file or directory (all 56 rules). |
 | `sentinel audit-headers <url>` | Same unified URL audit, explicit form. |
 | `sentinel rules [--show]` | Validate and list every loaded rule document. |
 

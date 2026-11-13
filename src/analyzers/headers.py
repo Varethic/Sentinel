@@ -147,6 +147,8 @@ def _make_finding(
         severity=rule.severity,
         category=rule.category,
         cwe_id=rule.cwe_id,
+        cve=rule.cve,
+        cve_date=rule.cve_date,
         file_path=url,
         line_number=0,
         column=0,
@@ -583,6 +585,7 @@ CATEGORY_SQLI: str = "sql injection"
 CATEGORY_HEADERS: str = "headers & cookies"
 CATEGORY_CORS: str = "cors & info leak"
 CATEGORY_SSRF: str = "ssrf & redirects"
+CATEGORY_STACK: str = "stack & shells"
 
 # Query parameter names that steer the next hop (redirect target or fetch URL).
 REDIRECT_PARAMETER_TOKENS: tuple[str, ...] = (
@@ -628,6 +631,7 @@ CATEGORY_ORDER: tuple[str, ...] = (
     CATEGORY_HEADERS,
     CATEGORY_CORS,
     CATEGORY_SSRF,
+    CATEGORY_STACK,
 )
 
 # Reflected markers used to detect whether a parameter is echoed back unescaped.
@@ -1189,6 +1193,17 @@ def _check_header_surface(headers: dict[str, str], cookies: list[str]) -> Catego
         weak_reasons.append(f"server banner ({', '.join(banners)})")
         weak_rules.append("HDR007")
 
+    cache_headers = [
+        name
+        for name in ("x-cache", "cf-cache-status", "age", "via", "x-varnish")
+        if headers.get(name)
+    ]
+    if cache_headers:
+        vary = headers.get("vary", "").lower()
+        if "host" not in vary:
+            weak_reasons.append(f"unkeyed cache ({', '.join(cache_headers)}) without Vary: Host")
+            weak_rules.append("HST002")
+
     debug_banner = sorted(name for name in headers if name in DB_DEBUG_HEADERS)
     issues: set[str] = set()
     for raw in cookies:
@@ -1250,6 +1265,9 @@ class SurfaceParser(HTMLParser):
         self.forms: list[dict[str, object]] = []
         self.subresources: list[dict[str, str]] = []
         self.password_inputs: list[str] = []
+        self.anchors: list[dict[str, str]] = []
+        self.inline_scripts: list[str] = []
+        self._in_script: bool = False
         self._form: dict[str, object] | None = None
 
     def _starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -1259,6 +1277,16 @@ class SurfaceParser(HTMLParser):
 
         if lowered == "a" and values.get("href"):
             self.links.append(values["href"])
+            self.anchors.append(
+                {
+                    "href": values.get("href", ""),
+                    "target": values.get("target", ""),
+                    "rel": values.get("rel", ""),
+                }
+            )
+
+        if lowered == "script" and not values.get("src"):
+            self._in_script = True
 
         if lowered == "form":
             self._form = {
@@ -1295,11 +1323,19 @@ class SurfaceParser(HTMLParser):
         """Close the current form when its end tag is reached."""
         if tag.lower() == "form":
             self._form = None
+        if tag.lower() == "script":
+            self._in_script = False
+
+    def _handle_data(self, data: str) -> None:
+        """Collect inline script text."""
+        if self._in_script and data:
+            self.inline_scripts.append(data)
 
     # ``HTMLParser`` dispatches to these exact names; the definitions stay
     # underscore-prefixed to match the project-wide convention.
     handle_starttag = _starttag
     handle_endtag = _endtag
+    handle_data = _handle_data
 
 
 def _origin_of(url: str) -> tuple[str, str, int | None]:
@@ -1571,10 +1607,52 @@ def _inspect_html_surface(
 
     redirects = _redirect_parameters(parser.links, parser.forms, base)
 
+    # Subdomain takeover indicators (CLD002)
+    takeover_domains = (
+        "herokuapp.com",
+        "github.io",
+        "azurewebsites.net",
+        "s3.amazonaws.com",
+        "pantheonsite.io",
+        "firebaseapp.com",
+        "surge.sh",
+    )
+    takeovers: list[str] = []
+    all_refs = [res.get("url", "") for res in parser.subresources] + parser.links
+    for ref in all_refs:
+        lowered_ref = ref.lower().strip()
+        for dom in takeover_domains:
+            if f".{dom}" in lowered_ref:
+                takeovers.append(f"external resource points to takeover-prone cloud host: {dom}")
+                break
+
+    # Reverse tabnabbing (CLT002)
+    tabnabbing: list[str] = []
+    for a in parser.anchors:
+        href = a.get("href", "").strip()
+        target = a.get("target", "").lower().strip()
+        rel = a.get("rel", "").lower().strip()
+        if target == "_blank" and (href.startswith("http://") or href.startswith("https://")):
+            if not _is_same_origin(href, base):
+                if "noopener" not in rel and "noreferrer" not in rel:
+                    display = href if len(href) <= 45 else href[:42] + "..."
+                    tabnabbing.append(f"target=_blank external link missing rel=noopener: {display}")
+
+    # Client storage tokens in inline scripts (CLT001)
+    storage_leaks: list[str] = []
+    storage_tokens = ("token", "jwt", "auth", "secret", "password", "session")
+    for script_text in parser.inline_scripts:
+        lowered_script = script_text.lower()
+        if "localstorage.setitem" in lowered_script or "sessionstorage.setitem" in lowered_script:
+            for token in storage_tokens:
+                if token in lowered_script:
+                    storage_leaks.append(f"inline script stores '{token}' in client storage")
+                    break
+
     return {
         CATEGORY_XSS: integrity,
         CATEGORY_HEADERS: [*mixed, *passwords, *insecure_action],
-        CATEGORY_CORS: [],
+        CATEGORY_CORS: [*takeovers, *tabnabbing, *storage_leaks],
         CATEGORY_SSRF: redirects,
         "csrf": csrf,
     }
@@ -1683,6 +1761,42 @@ def _canary_reflection(
     return False
 
 
+def _check_stack_surface(headers: dict[str, str], body: str) -> CategoryResult:
+    """Evaluate server stack, debug traces and exposed shells."""
+    reasons: list[str] = []
+    lowered_body = body.lower() if body else ""
+
+    stack_traces = [
+        "traceback (most recent call last)",
+        "django.core.exceptions",
+        "werkzeug.debug",
+        "whoops! there was an error",
+        "fatal error: uncaught exception",
+    ]
+    for st in stack_traces:
+        if st in lowered_body:
+            return CategoryResult(
+                name=CATEGORY_STACK,
+                verdict=Verdict.VULNERABLE,
+                reasons=(f"debug stack trace exposed in response body: '{st}'",),
+                rule_ids=("HDR012",),
+            )
+
+    for hdr in ("x-powered-by", "x-aspnet-version", "x-runtime"):
+        if hdr in headers:
+            reasons.append(f"disclosed backend framework via {hdr}: {headers[hdr]}")
+
+    if reasons:
+        return CategoryResult(
+            name=CATEGORY_STACK,
+            verdict=Verdict.HARDENING,
+            reasons=tuple(reasons),
+            rule_ids=("HDR007",),
+        )
+
+    return CategoryResult(name=CATEGORY_STACK, verdict=Verdict.SAFE)
+
+
 def _audit_web(
     url: str,
     timeout: float = DEFAULT_TIMEOUT,
@@ -1764,8 +1878,11 @@ def _audit_web(
     headers_result = _check_header_surface(headers, cookies)
     headers_result = _merge_surface(headers_result, header_reasons, ["HDR003"], False)
     cors = _check_cors_surface(headers, body)
+    cors_reasons = _surface_reasons(surfaces, CATEGORY_CORS)
+    cors = _merge_surface(cors, cors_reasons, ["CLD002", "CLT001", "CLT002"], False)
 
     redirect_reasons = _surface_reasons(surfaces, CATEGORY_SSRF)
+    stack = _check_stack_surface(headers, body)
 
     categories = (
         xss,
@@ -1773,6 +1890,7 @@ def _audit_web(
         headers_result,
         cors,
         _check_ssrf_surface(redirect_reasons, body),
+        stack,
     )
 
     return WebReport(
@@ -1803,12 +1921,18 @@ def _build_web_report(
     cookie_values = list(cookies or [])
     page_is_https = urlparse(target).scheme.lower() == "https"
     surface = _inspect_html_surface(body, target, page_is_https)
+    cors = _check_cors_surface(lowered, body)
+    cors_surface = surface.get(CATEGORY_CORS, [])
+    if cors_surface:
+        cors = _merge_surface(cors, cors_surface, ["CLD002", "CLT001", "CLT002"], False)
+    stack = _check_stack_surface(lowered, body)
     categories = (
         _check_xss_surface(lowered, body, reflection_raw),
         _check_sqli_surface(lowered, body),
         _check_header_surface(lowered, cookie_values),
-        _check_cors_surface(lowered, body),
+        cors,
         _check_ssrf_surface(surface.get(CATEGORY_SSRF, []), body),
+        stack,
     )
     return WebReport(
         url=target,

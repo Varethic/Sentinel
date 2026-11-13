@@ -8,6 +8,7 @@ This module is the single place that turns those documents into typed objects.
 from __future__ import annotations
 
 import json
+from datetime import date
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -99,6 +100,8 @@ class Rule(BaseModel):
     name: str = Field(..., min_length=3, max_length=200)
     category: str = Field(..., min_length=3)
     cwe_id: str = Field(..., pattern=r"^CWE-\d+$")
+    cve: str = Field(..., pattern=r"^CVE-\d{4}-\d{4,7}$")
+    cve_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
     severity: Severity
     description: str = Field(..., min_length=10)
     remediation_example: str = Field(..., min_length=3)
@@ -107,6 +110,18 @@ class Rule(BaseModel):
     references: list[str] = Field(default_factory=list)
     enabled: bool = True
 
+    @field_validator("cve_date")
+    @classmethod
+    def _check_cve_date(cls, value: str) -> str:
+        """Reject impossible dates such as 2021-02-30 or month 13."""
+        try:
+            parsed = date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError(f"not a valid calendar date: {value}") from exc
+        if parsed.year < 1999:
+            raise ValueError(f"CVE identifiers began in 1999, got {value}")
+        return value
+
     def _is_enabled(self) -> bool:
         """Return whether the rule should participate in scans."""
         return bool(self.enabled)
@@ -114,6 +129,10 @@ class Rule(BaseModel):
     def _label(self) -> str:
         """Human readable identifier used in reports."""
         return f"{self.rule_id} {self.name}"
+
+    def _cve_label(self) -> str:
+        """Render the reference CVE with its publication date."""
+        return f"{self.cve} ({self.cve_date})"
 
     def _fingerprint(self) -> tuple[str, str]:
         """Stable identity for de-duplicating identical findings."""

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "analyzer": "idor",
+  "title": "IDOR and Broken Access Control Static Analysis Rules",
+  "rules": [
+    {
+      "rule_id": "IDR001",
+      "name": "Direct object reference without ownership check",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-639",
+      "cve": "CVE-2023-28432",
+      "cve_date": "2023-03-22",
+      "severity": "HIGH",
+      "description": "Route/view functions accepting object identifiers (user_id, account_id, order_id, file_id) and passing them directly to ORM .get() / .filter_by() / SELECT calls without referencing an authenticated user/permission guard in scope.",
+      "remediation_example": "order = Order.query.filter_by(id=order_id, user_id=current_user.id).first_or_404()  # scope to authenticated user",
+      "patterns": {
+        "type": "idor_query",
+        "id_params": ["id", "user_id", "account_id", "order_id", "file_id", "doc_id", "item_id", "profile_id"],
+        "orm_sinks": ["get", "filter_by", "filter", "first_or_404", "find", "find_by_id"]
+      },
+      "tags": ["idor", "access-control", "authorization"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/639.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "IDR002",
+      "name": "Administrative or sensitive route missing authentication",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-284",
+      "cve": "CVE-2022-24765",
+      "cve_date": "2022-04-12",
+      "severity": "HIGH",
+      "description": "Sensitive administrative or debug routes (/admin, /internal, /debug, /metrics) defined in Python web routers without authentication decorators (@login_required, Depends(...), @requires_auth).",
+      "remediation_example": "@app.route('/admin')\n@login_required\ndef admin_dashboard(): ...  # enforce authentication decorator",
+      "patterns": {
+        "type": "admin_route_auth",
+        "sensitive_paths": ["/admin", "/internal", "/debug", "/metrics", "/_admin", "/manage"],
+        "auth_decorators": ["login_required", "admin_required", "requires_auth", "authenticated", "permission_required", "Depends", "jwt_required", "auth_required"]
+      },
+      "tags": ["idor", "access-control", "admin", "routes"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/284.html"
+      ],
+      "enabled": true
+    }
+  ]
+}

@@ -13,19 +13,42 @@
       "description": "A database execution call (.execute/.executemany/.executescript) receives a dynamically built f-string. Interpolated values are inserted into the SQL text before the driver parses it, so attacker-controlled data can alter query structure (SQL injection).",
       "remediation_example": "cursor.execute('SELECT * FROM users WHERE email = %s', (email,))",
       "patterns": {
-        "sinks": ["execute", "executemany", "executescript", "raw", "extra"],
-        "sql_keywords": [
-          "select", "insert", "update", "delete", "replace",
-          "where", "values", "from", "set", "join", "order by"
+        "sinks": [
+          "execute",
+          "executemany",
+          "executescript",
+          "raw",
+          "extra"
         ],
-        "dynamic_nodes": ["JoinedStr"]
+        "sql_keywords": [
+          "select",
+          "insert",
+          "update",
+          "delete",
+          "replace",
+          "where",
+          "values",
+          "from",
+          "set",
+          "join",
+          "order by"
+        ],
+        "dynamic_nodes": [
+          "JoinedStr"
+        ]
       },
-      "tags": ["http", "database", "injection"],
+      "tags": [
+        "http",
+        "database",
+        "injection"
+      ],
       "references": [
         "https://owasp.org/Top10/A03_2021-Injection/",
         "https://cwe.mitre.org/data/definitions/89.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2022-28346",
+      "cve_date": "2022-04-12"
     },
     {
       "rule_id": "SQLI002",
@@ -36,19 +59,42 @@
       "description": "A SQL statement is assembled with the '+' operator and passed directly to a database execution sink. Concatenated segments bypass parameter binding and allow injected SQL fragments to be interpreted as code.",
       "remediation_example": "cursor.execute('SELECT * FROM orders WHERE id = %s', (order_id,))",
       "patterns": {
-        "sinks": ["execute", "executemany", "executescript", "raw", "extra"],
-        "sql_keywords": [
-          "select", "insert", "update", "delete", "replace",
-          "where", "values", "from", "set", "join", "order by"
+        "sinks": [
+          "execute",
+          "executemany",
+          "executescript",
+          "raw",
+          "extra"
         ],
-        "dynamic_nodes": ["BinOp:Add"]
+        "sql_keywords": [
+          "select",
+          "insert",
+          "update",
+          "delete",
+          "replace",
+          "where",
+          "values",
+          "from",
+          "set",
+          "join",
+          "order by"
+        ],
+        "dynamic_nodes": [
+          "BinOp:Add"
+        ]
       },
-      "tags": ["http", "database", "injection"],
+      "tags": [
+        "http",
+        "database",
+        "injection"
+      ],
       "references": [
         "https://owasp.org/Top10/A03_2021-Injection/",
         "https://cwe.mitre.org/data/definitions/89.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2019-14234",
+      "cve_date": "2019-08-09"
     },
     {
       "rule_id": "SQLI003",
@@ -59,19 +105,42 @@
       "description": "A SQL statement is built using old-style '%' string formatting and sent to a database execution sink. Values are rendered into the query text rather than bound as parameters, enabling SQL injection.",
       "remediation_example": "cursor.execute('SELECT * FROM accounts WHERE owner = %s', (owner,))",
       "patterns": {
-        "sinks": ["execute", "executemany", "executescript", "raw", "extra"],
-        "sql_keywords": [
-          "select", "insert", "update", "delete", "replace",
-          "where", "values", "from", "set", "join", "order by"
+        "sinks": [
+          "execute",
+          "executemany",
+          "executescript",
+          "raw",
+          "extra"
         ],
-        "dynamic_nodes": ["BinOp:Mod"]
+        "sql_keywords": [
+          "select",
+          "insert",
+          "update",
+          "delete",
+          "replace",
+          "where",
+          "values",
+          "from",
+          "set",
+          "join",
+          "order by"
+        ],
+        "dynamic_nodes": [
+          "BinOp:Mod"
+        ]
       },
-      "tags": ["http", "database", "injection"],
+      "tags": [
+        "http",
+        "database",
+        "injection"
+      ],
       "references": [
         "https://owasp.org/Top10/A03_2021-Injection/",
         "https://cwe.mitre.org/data/definitions/89.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2020-7471",
+      "cve_date": "2020-02-03"
     },
     {
       "rule_id": "SQLI004",
@@ -82,19 +151,42 @@
       "description": "A SQL statement is assembled by calling '.format()' (or '.substitute()'.on a template) on a query string. Placeholder substitution happens in Python, so user data becomes part of the SQL text and is executable by the database.",
       "remediation_example": "cursor.execute('SELECT * FROM events WHERE kind = %s', (kind,))",
       "patterns": {
-        "sinks": ["execute", "executemany", "executescript", "raw", "extra"],
-        "sql_keywords": [
-          "select", "insert", "update", "delete", "replace",
-          "where", "values", "from", "set", "join", "order by"
+        "sinks": [
+          "execute",
+          "executemany",
+          "executescript",
+          "raw",
+          "extra"
         ],
-        "dynamic_nodes": ["Call:format"]
+        "sql_keywords": [
+          "select",
+          "insert",
+          "update",
+          "delete",
+          "replace",
+          "where",
+          "values",
+          "from",
+          "set",
+          "join",
+          "order by"
+        ],
+        "dynamic_nodes": [
+          "Call:format"
+        ]
       },
-      "tags": ["http", "database", "injection"],
+      "tags": [
+        "http",
+        "database",
+        "injection"
+      ],
       "references": [
         "https://owasp.org/Top10/A03_2021-Injection/",
         "https://cwe.mitre.org/data/definitions/89.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2022-34265",
+      "cve_date": "2022-07-04"
     },
     {
       "rule_id": "SQLI005",
@@ -105,19 +197,46 @@
       "description": "An ORM helper such as text() or raw() is given an interpolated string and executed. These helpers pass SQL through to the database, so interpolation reintroduces injection even when the ORM is otherwise used.",
       "remediation_example": "session.execute(text('SELECT * FROM users WHERE id = :uid'), {'uid': user_id})",
       "patterns": {
-        "sinks": ["text", "raw", "executescript", "execute", "executemany"],
-        "sql_keywords": [
-          "select", "insert", "update", "delete", "replace",
-          "where", "values", "from", "set", "join", "order by"
+        "sinks": [
+          "text",
+          "raw",
+          "executescript",
+          "execute",
+          "executemany"
         ],
-        "dynamic_nodes": ["JoinedStr", "BinOp:Add", "BinOp:Mod", "Call:format"]
+        "sql_keywords": [
+          "select",
+          "insert",
+          "update",
+          "delete",
+          "replace",
+          "where",
+          "values",
+          "from",
+          "set",
+          "join",
+          "order by"
+        ],
+        "dynamic_nodes": [
+          "JoinedStr",
+          "BinOp:Add",
+          "BinOp:Mod",
+          "Call:format"
+        ]
       },
-      "tags": ["http", "database", "orm", "injection"],
+      "tags": [
+        "http",
+        "database",
+        "orm",
+        "injection"
+      ],
       "references": [
         "https://owasp.org/Top10/A03_2021-Injection/",
         "https://cwe.mitre.org/data/definitions/89.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2022-28346",
+      "cve_date": "2022-04-12"
     }
   ]
 }

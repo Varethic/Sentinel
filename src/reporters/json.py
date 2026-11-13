@@ -29,6 +29,8 @@ def _finding_dict(finding: Finding) -> dict[str, Any]:
         "severity": finding.severity.value,
         "category": finding.category,
         "cwe_id": finding.cwe_id,
+        "cve": finding.cve,
+        "cve_date": finding.cve_date,
         "location": {
             "file": finding.file_path,
             "line": finding.line_number,

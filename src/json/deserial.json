@@ -13,16 +13,40 @@
       "description": "pickle.loads(), pickle.load(), _pickle.loads(), marshal.loads() or shelve.open() reconstructs Python objects from a byte stream. The pickle and marshal formats can name arbitrary callables, so deserializing attacker-supplied bytes runs arbitrary code in the auditor process.",
       "remediation_example": "data = json.loads(payload)  # or a schema-validated format such as msgpack with strict types",
       "patterns": {
-        "sinks": ["loads", "load", "open"],
-        "sink_modules": ["pickle", "_pickle", "cPickle", "marshal", "shelve", "dill"],
-        "dynamic_nodes": ["JoinedStr", "BinOp", "Name", "Attribute", "Subscript", "Call"]
+        "sinks": [
+          "loads",
+          "load",
+          "open"
+        ],
+        "sink_modules": [
+          "pickle",
+          "_pickle",
+          "cPickle",
+          "marshal",
+          "shelve",
+          "dill"
+        ],
+        "dynamic_nodes": [
+          "JoinedStr",
+          "BinOp",
+          "Name",
+          "Attribute",
+          "Subscript",
+          "Call"
+        ]
       },
-      "tags": ["deserialization", "integrity", "pickle"],
+      "tags": [
+        "deserialization",
+        "integrity",
+        "pickle"
+      ],
       "references": [
         "https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/",
         "https://cwe.mitre.org/data/definitions/502.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2020-14343",
+      "cve_date": "2021-02-09"
     },
     {
       "rule_id": "DES002",
@@ -33,16 +57,35 @@
       "description": "yaml.load() or yaml.unsafe_load() is called without Loader=yaml.SafeLoader or yaml.CSafeLoader. The default loader constructs arbitrary Python objects from YAML tags such as !!python/object/apply, which allows code execution from a crafted document.",
       "remediation_example": "yaml.safe_load(document)  # or yaml.load(document, Loader=yaml.SafeLoader)",
       "patterns": {
-        "sinks": ["load", "unsafe_load", "load_all", "unsafe_load_all"],
-        "sink_modules": ["yaml", "ruamel", "ruamel.yaml"],
-        "safe_loaders": ["SafeLoader", "CSafeLoader", "BaseLoader"]
+        "sinks": [
+          "load",
+          "unsafe_load",
+          "load_all",
+          "unsafe_load_all"
+        ],
+        "sink_modules": [
+          "yaml",
+          "ruamel",
+          "ruamel.yaml"
+        ],
+        "safe_loaders": [
+          "SafeLoader",
+          "CSafeLoader",
+          "BaseLoader"
+        ]
       },
-      "tags": ["deserialization", "integrity", "yaml"],
+      "tags": [
+        "deserialization",
+        "integrity",
+        "yaml"
+      ],
       "references": [
         "https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/",
         "https://cwe.mitre.org/data/definitions/502.html"
       ],
-      "enabled": true
+      "enabled": true,
+      "cve": "CVE-2017-18342",
+      "cve_date": "2018-06-27"
     }
   ]
 }

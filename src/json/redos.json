@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "analyzer": "redos",
+  "title": "Regular Expression Denial of Service and Resource Exhaustion Static Analysis Rules",
+  "rules": [
+    {
+      "rule_id": "DOS001",
+      "name": "Regular expression with catastrophic backtracking",
+      "category": "A04:2021 - Insecure Design",
+      "cwe_id": "CWE-1333",
+      "cve": "CVE-2020-7662",
+      "cve_date": "2020-06-02",
+      "severity": "HIGH",
+      "description": "A regular expression is compiled or used with nested quantifiers such as (a+)+, (.*)+ or ([a-zA-Z]+)*. On a failing match the engine tries exponentially many ways to split the input, so a short attacker-supplied string can pin a worker for minutes or hours. The regex engine also backtracks across alternations that overlap.",
+      "remediation_example": "pattern = re.compile(r'(?:a+)+\\Z')  # replace with a linear pattern, or use the third-party 'regex' module with timeout=",
+      "patterns": {
+        "type": "regex_sink",
+        "sinks": ["compile", "search", "match", "fullmatch", "findall", "finditer", "sub", "split"]
+      },
+      "tags": ["dos", "regex", "backtracking"],
+      "references": [
+        "https://owasp.org/Top10/A04_2021-Insecure_Design/",
+        "https://cwe.mitre.org/data/definitions/1333.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "DOS002",
+      "name": "Outbound HTTP request without a timeout",
+      "category": "A04:2021 - Insecure Design",
+      "cwe_id": "CWE-400",
+      "cve": "CVE-2021-33503",
+      "cve_date": "2021-06-29",
+      "severity": "MEDIUM",
+      "description": "A requests or httpx call omits the timeout= parameter. The client will then wait indefinitely for the peer, so one slow or hostile endpoint exhausts the worker pool and stalls the whole service. Every outbound request needs a bounded timeout.",
+      "remediation_example": "response = requests.get(url, timeout=(3.05, 10))",
+      "patterns": {
+        "type": "timeout_sink",
+        "sinks": ["get", "post", "put", "patch", "delete", "head", "request", "urlopen", "urlretrieve"],
+        "sink_modules": ["requests", "httpx", "urllib", "urllib3", "aiohttp"]
+      },
+      "tags": ["dos", "resource", "timeout"],
+      "references": [
+        "https://owasp.org/Top10/A04_2021-Insecure_Design/",
+        "https://cwe.mitre.org/data/definitions/400.html"
+      ],
+      "enabled": true
+    }
+  ]
+}

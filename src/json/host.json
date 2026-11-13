@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "analyzer": "host",
+  "title": "Host Header Injection and Cache Poisoning Static Analysis Rules",
+  "rules": [
+    {
+      "rule_id": "HST001",
+      "name": "Host header injection in redirect or link construction",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-644",
+      "cve": "CVE-2023-25690",
+      "cve_date": "2023-03-07",
+      "severity": "HIGH",
+      "description": "Trusting raw Host or X-Forwarded-Host request headers in Python web handlers to construct password-reset links or redirects without allowlist validation allows host header injection and cache poisoning.",
+      "remediation_example": "host = request.headers.get('host'); if host not in ALLOWED_HOSTS: raise BadRequest()  # validate against strict allowlist",
+      "patterns": {
+        "type": "host_injection",
+        "header_names": ["host", "x-forwarded-host", "http_host", "http_x_forwarded_host"],
+        "request_attrs": ["host", "get_host"]
+      },
+      "tags": ["host", "injection", "cache-poisoning"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/644.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "HST002",
+      "name": "Unkeyed cache and proxy header exposure",
+      "category": "A05:2021 - Security Misconfiguration",
+      "cwe_id": "CWE-444",
+      "cve": "CVE-2023-32314",
+      "cve_date": "2023-05-19",
+      "severity": "MEDIUM",
+      "description": "Web surface check for unkeyed cache/proxy headers (X-Cache, CF-Cache-Status, Age, Via) combined with missing Vary headers or reflected X-Forwarded-Host values.",
+      "remediation_example": "response.headers['Vary'] = 'Host, Accept-Encoding'  # ensure upstream caches key on the Host header",
+      "patterns": {
+        "type": "cache_poisoning",
+        "cache_headers": ["x-cache", "cf-cache-status", "age", "via", "x-varnish", "x-drupal-cache"]
+      },
+      "tags": ["host", "cache", "proxy"],
+      "references": [
+        "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
+        "https://cwe.mitre.org/data/definitions/444.html"
+      ],
+      "enabled": true
+    }
+  ]
+}

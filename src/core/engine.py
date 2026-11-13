@@ -54,6 +54,8 @@ class Finding(BaseModel):
     severity: Severity
     category: str = Field(default="", min_length=0)
     cwe_id: str = Field(default="", min_length=0)
+    cve: str = Field(default="", min_length=0)
+    cve_date: str = Field(default="", min_length=0)
     file_path: str = Field(..., min_length=1)
     line_number: int = Field(..., ge=0)
     column: int = Field(default=0, ge=0)
@@ -81,6 +83,14 @@ class Finding(BaseModel):
     def _location(self) -> str:
         """Render a compact 'file:line' location string."""
         return f"{self.file_path}:{self.line_number}"
+
+    def _cve_label(self) -> str:
+        """Render the reference CVE and its publication date, if known."""
+        if not self.cve:
+            return ""
+        if self.cve_date:
+            return f"{self.cve} ({self.cve_date})"
+        return self.cve
 
 
 @dataclass(frozen=True)
@@ -171,6 +181,8 @@ class Visitor(ast.NodeVisitor):
                 severity=rule.severity,
                 category=rule.category,
                 cwe_id=rule.cwe_id,
+                cve=rule.cve,
+                cve_date=rule.cve_date,
                 file_path=self._target.display_path,
                 line_number=getattr(node, "lineno", 0) or 0,
                 column=getattr(node, "col_offset", 0) or 0,

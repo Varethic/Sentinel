@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0.0",
+  "analyzer": "cloud",
+  "title": "Cloud Storage and Subdomain Takeover Analysis Rules",
+  "rules": [
+    {
+      "rule_id": "CLD001",
+      "name": "Hardcoded public cloud storage bucket URL",
+      "category": "A01:2021 - Broken Access Control",
+      "cwe_id": "CWE-200",
+      "cve": "CVE-2021-3156",
+      "cve_date": "2021-01-26",
+      "severity": "HIGH",
+      "description": "Hardcoded public cloud storage bucket URLs (s3.amazonaws.com, storage.googleapis.com, blob.core.windows.net) with write/list operations or unauthenticated access in Python code.",
+      "remediation_example": "url = s3_client.generate_presigned_url('get_object', Params={'Bucket': BUCKET, 'Key': key})  # use pre-signed URLs or signed IAM requests",
+      "patterns": {
+        "type": "cloud_storage",
+        "cloud_hosts": [
+          "s3.amazonaws.com",
+          "storage.googleapis.com",
+          "blob.core.windows.net",
+          "digitaloceanspaces.com"
+        ]
+      },
+      "tags": ["cloud", "storage", "s3", "disclosure"],
+      "references": [
+        "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+        "https://cwe.mitre.org/data/definitions/200.html"
+      ],
+      "enabled": true
+    },
+    {
+      "rule_id": "CLD002",
+      "name": "Subdomain takeover indicator on external cloud asset",
+      "category": "A05:2021 - Security Misconfiguration",
+      "cwe_id": "CWE-350",
+      "cve": "CVE-2022-23614",
+      "cve_date": "2022-02-11",
+      "severity": "HIGH",
+      "description": "Web surface check for external script/iframe/link references pointing to unclaimed-prone cloud/PaaS hostnames (*.herokuapp.com, *.github.io, *.azurewebsites.net, *.s3.amazonaws.com) in HTML pages.",
+      "remediation_example": "Audit external cloud references and ensure third-party PaaS buckets and hostnames are actively claimed or hosted on verified first-party domains.",
+      "patterns": {
+        "type": "subdomain_takeover",
+        "takeover_domains": [
+          "herokuapp.com",
+          "github.io",
+          "azurewebsites.net",
+          "s3.amazonaws.com",
+          "pantheonsite.io",
+          "firebaseapp.com",
+          "surge.sh"
+        ]
+      },
+      "tags": ["cloud", "takeover", "subdomain", "surface"],
+      "references": [
+        "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
+        "https://cwe.mitre.org/data/definitions/350.html"
+      ],
+      "enabled": true
+    }
+  ]
+}
