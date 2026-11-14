@@ -567,7 +567,7 @@ def _run_url_audit(
         _err(f"rule loading failed: {exc}")
         raise typer.Exit(code=EXIT_ERROR) from exc
 
-    unreachable = bool(report.errors) and report.status_code == 0
+    unreachable = bool(report.errors) and report.status_code == 0 and not getattr(report, "whitelisted", False)
 
     if format is OutputFormat.JSON:
         text = json_reporter._render_web(report)
@@ -583,6 +583,9 @@ def _run_url_audit(
 
     if unreachable:
         raise typer.Exit(code=EXIT_ERROR)
+
+    if getattr(report, "whitelisted", False):
+        raise typer.Exit(code=EXIT_OK)
 
     raise typer.Exit(code=EXIT_FINDINGS if report._has_blocking() else EXIT_OK)
 
@@ -611,6 +614,14 @@ def _run_header_audit(
     except RuleLoadError as exc:
         _err(f"rule loading failed: {exc}")
         raise typer.Exit(code=EXIT_ERROR) from exc
+
+    if getattr(report, "whitelisted", False):
+        if format is OutputFormat.JSON:
+            text = json_reporter._render_headers(report)
+            typer.echo(text)
+        else:
+            terminal_reporter._render_headers_report(report, no_color=no_color)
+        raise typer.Exit(code=EXIT_OK)
 
     blocking = _blocking_count(report.findings, threshold)
     unreachable = bool(report.errors) and not report.present_headers

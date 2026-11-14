@@ -636,6 +636,53 @@ sentinel https://example.com --format json      # machine-readable categories
 The explicit `sentinel audit-headers <url>` command keeps its detailed table output
 unchanged; the compact view is only the default for the shorthand form.
 
+### Website & Domain Whitelist
+
+Sentinel provides a defensive allowlist mechanism that bypasses crawling and probing for designated local or internal targets and filters noise from trusted third-party destinations.
+
+#### 1. Configuration (`src/json/whitelist.json`)
+
+Default allowlisted hostnames and trusted external domains are configured in `src/json/whitelist.json`:
+
+```json
+{
+  "domains": [
+    "localhost",
+    "127.0.0.1"
+  ],
+  "trusted_external_links": []
+}
+```
+
+* **`domains`**: Hostnames or wildcard domain patterns (e.g. `localhost`, `127.0.0.1`, `*.example.internal`) that should be bypassed during live web audits.
+* **`trusted_external_links`**: Hostnames or wildcards (e.g. `trusted-partner.com`, `*.github.com`) whose outbound `target="_blank"` links are considered approved and will not trigger reverse tabnabbing (`CLT002`) warnings.
+
+#### 2. Local Allowlist (`.sentinelwhitelist`)
+
+To customize allowlisted domains per repository without editing packaged files, place a `.sentinelwhitelist` file in your project root:
+
+```text
+# Local development and internal hosts
+localhost
+127.0.0.1
+*.internal.corp
+staging.local
+```
+
+Lines starting with `#` and empty lines are ignored.
+
+#### 3. Whitelist Execution
+
+When an allowlisted host is passed to Sentinel, scanning is bypassed immediately:
+
+```bash
+$ sentinel http://localhost
+URL : http://localhost
+status : WHITELISTED (domain matched allowlist)
+```
+
+The process exits with status code `0`.
+
 ### Static analysis (Zero-Flag & Shorthand)
 
 ```bash

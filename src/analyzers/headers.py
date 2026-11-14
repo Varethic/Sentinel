@@ -18,7 +18,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 
 from src.core.engine import Finding
-from src.core.loader import Rule, _rules_for
+from src.core.loader import Rule, _domain_matches, _load_whitelist, _rules_for
 
 ANALYZER_NAME: str = "headers"
 DEFAULT_TIMEOUT: float = 10.0
@@ -40,6 +40,7 @@ class HeaderReport:
     present_headers: tuple[str, ...] = field(default=())
     cookie_count: int = 0
     errors: tuple[str, ...] = field(default=())
+    whitelisted: bool = False
 
     def _counts(self) -> dict[str, int]:
         """Count findings per severity label."""
@@ -512,6 +513,20 @@ def _analyze(
 ) -> HeaderReport:
     """Perform one passive request and audit the response security headers."""
     target = _normalize_url(url)
+    target_host = urlparse(target).hostname or ""
+    whitelist = _load_whitelist()
+    if _domain_matches(target_host, whitelist.get("domains", [])):
+        return HeaderReport(
+            url=target,
+            final_url=target,
+            status_code=200,
+            findings=(),
+            present_headers=(),
+            cookie_count=0,
+            errors=(),
+            whitelisted=True,
+        )
+
     rules = _rules_for(ANALYZER_NAME)
     errors: list[str] = []
 
@@ -838,6 +853,7 @@ class WebReport:
     deep: bool = False
     present_headers: tuple[str, ...] = field(default=())
     cookie_count: int = 0
+    whitelisted: bool = False
 
     def _category(self, name: str) -> CategoryResult:
         """Return one category result by name."""
@@ -860,14 +876,20 @@ class WebReport:
         Missing hardening headers alone do not fail a passive scan; they are
         reported as HARDENING NEEDED so the operator can triage them.
         """
+        if self.whitelisted:
+            return False
         return any(item.verdict._is_vulnerable() for item in self.categories)
 
     def _needs_hardening(self) -> bool:
         """Return True when any category needs hardening (not necessarily failing)."""
+        if self.whitelisted:
+            return False
         return any(item.verdict._needs_attention() for item in self.categories)
 
     def _verdict(self) -> Verdict:
         """Return the worst verdict across every category."""
+        if self.whitelisted:
+            return Verdict.SAFE
         return _worst(*(item.verdict for item in self.categories))
 
     def _counts(self) -> dict[str, int]:
@@ -885,6 +907,7 @@ class WebReport:
             "url": self.url,
             "final_url": self.final_url,
             "status_code": self.status_code,
+            "whitelisted": self.whitelisted,
             "verdict": self._verdict().value,
             "deep": self.deep,
             "pages_inspected": list(self.pages),
@@ -1552,12 +1575,16 @@ def _inspect_html_surface(
     body: str,
     base: str,
     page_is_https: bool,
+    trusted_external: Sequence[str] | None = None,
 ) -> dict[str, list[str]]:
     """Inspect one document for CSRF, SRI, mixed-content and password issues.
 
     Returns a mapping of category name to human readable reasons, so the caller
     can fold them into the existing three-tier verdicts.
     """
+    if trusted_external is None:
+        trusted_external = _load_whitelist().get("trusted_external_links", [])
+
     parser = _parse_html(body)
     csrf: list[str] = []
     integrity: list[str] = []
@@ -1637,6 +1664,9 @@ def _inspect_html_surface(
         rel = a.get("rel", "").lower().strip()
         if target == "_blank" and (href.startswith("http://") or href.startswith("https://")):
             if not _is_same_origin(href, base):
+                dest_host = urlparse(href).hostname or ""
+                if trusted_external and _domain_matches(dest_host, trusted_external):
+                    continue
                 if "noopener" not in rel and "noreferrer" not in rel:
                     display = href if len(href) <= 45 else href[:42] + "..."
                     tabnabbing.append(f"target=_blank external link missing rel=noopener: {display}")
@@ -1917,6 +1947,23 @@ def _audit_web(
     request per page that has query parameters, to check for reflected output.
     """
     target = _normalize_url(url)
+    target_host = urlparse(target).hostname or ""
+
+    whitelist = _load_whitelist()
+    if _domain_matches(target_host, whitelist.get("domains", [])):
+        return WebReport(
+            url=target,
+            final_url=target,
+            status_code=200,
+            categories=tuple(
+                CategoryResult(name=name, verdict=Verdict.SAFE) for name in CATEGORY_ORDER
+            ),
+            findings=(),
+            errors=(),
+            pages=(target,),
+            deep=deep,
+            whitelisted=True,
+        )
 
     response, errors = _fetch(target, timeout, follow_redirects, max_redirects, client)
     if response is None:
@@ -1936,9 +1983,11 @@ def _audit_web(
     body = _body_text(response)
     final_url = str(response.url)
 
+    trusted_external = whitelist.get("trusted_external_links", [])
+
     # Markup inspection of the landing page in every mode.
     page_is_https = urlparse(final_url).scheme.lower() == "https"
-    surfaces: list[dict[str, list[str]]] = [_inspect_html_surface(body, final_url, page_is_https)]
+    surfaces: list[dict[str, list[str]]] = [_inspect_html_surface(body, final_url, page_is_https, trusted_external)]
     visited: list[str] = [final_url]
 
     if deep and body:
@@ -1963,7 +2012,7 @@ def _audit_web(
                 continue
             visited.append(str(page.url))
             page_https = urlparse(str(page.url)).scheme.lower() == "https"
-            surfaces.append(_inspect_html_surface(page_body, str(page.url), page_https))
+            surfaces.append(_inspect_html_surface(page_body, str(page.url), page_https, trusted_external))
 
     # Probing is opt-in: without --probe the audit sends exactly one GET per
     # discovered page and never rewrites query parameters.
@@ -2028,13 +2077,30 @@ def _build_web_report(
     cookies: list[str] | None = None,
     status_code: int = 200,
     reflection_raw: bool = False,
+    whitelisted: bool = False,
 ) -> WebReport:
     """Evaluate already-captured metadata (offline use and testing)."""
     target = _normalize_url(url)
+    if whitelisted:
+        return WebReport(
+            url=target,
+            final_url=target,
+            status_code=status_code,
+            categories=tuple(
+                CategoryResult(name=name, verdict=Verdict.SAFE) for name in CATEGORY_ORDER
+            ),
+            findings=(),
+            errors=(),
+            pages=(target,),
+            whitelisted=True,
+        )
+
     lowered = {name.lower(): value for name, value in headers.items()}
     cookie_values = list(cookies or [])
     page_is_https = urlparse(target).scheme.lower() == "https"
-    surface = _inspect_html_surface(body, target, page_is_https)
+    whitelist = _load_whitelist()
+    trusted_external = whitelist.get("trusted_external_links", [])
+    surface = _inspect_html_surface(body, target, page_is_https, trusted_external)
     cors = _check_cors_surface(lowered, body)
     cors_surface = surface.get(CATEGORY_CORS, [])
     if cors_surface:

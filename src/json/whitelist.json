@@ -1,0 +1,7 @@
+{
+  "domains": [
+    "localhost",
+    "127.0.0.1"
+  ],
+  "trusted_external_links": []
+}

@@ -234,6 +234,12 @@ def _render_headers_report(
 ) -> None:
     """Render a passive header audit report."""
     out = _console(console, no_color=no_color)
+
+    if getattr(report, "whitelisted", False):
+        out.print(Text.assemble(("URL : ", "bold"), (report.url, "")))
+        out.print(Text.assemble(("status : ", "bold"), ("WHITELISTED (domain matched allowlist)", "bold green")))
+        return
+
     out.print(_summary_panel(list(report.findings), report.url))
 
     info = Table(box=None, show_header=False, pad_edge=False)
@@ -378,6 +384,10 @@ def _render_simple(
 
     out.print(Text.assemble(("URL : ", "bold"), (report.url, "")))
 
+    if getattr(report, "whitelisted", False):
+        out.print(Text.assemble(("status : ", "bold"), ("WHITELISTED (domain matched allowlist)", "bold green")))
+        return
+
     if _unreachable(report):
         out.print(Text("unreachable : no response could be audited", style="bold red"))
         if show_errors:
@@ -411,6 +421,10 @@ def _render_web_report(
 
     out.print(Text.assemble(("URL : ", "bold"), (report.url, "")))
 
+    if getattr(report, "whitelisted", False):
+        out.print(Text.assemble(("status : ", "bold"), ("WHITELISTED (domain matched allowlist)", "bold green")))
+        return
+
     if _unreachable(report):
         out.print(Text("unreachable : no response could be audited", style="bold red"))
         for error in report.errors:
@@ -435,6 +449,9 @@ def _render_web_report(
 
 def _simple_text(report, verbose: bool = False) -> str:
     """Return the summary as plain text without colour (for logs and tests)."""
+    if getattr(report, "whitelisted", False):
+        return f"URL : {report.url}\nstatus : WHITELISTED (domain matched allowlist)\n"
+
     lines = [f"URL : {report.url}"]
     if verbose:
         lines.append(f"status : {report.status_code}")
