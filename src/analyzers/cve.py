@@ -212,16 +212,80 @@ def _match_product(prod: str, aliases: set[str]) -> bool:
     return False
 
 
+SENSITIVE_ENDPOINTS: frozenset[str] = frozenset(
+    {
+        "/.env",
+        "/.git",
+        "/.git/config",
+        "/phpinfo.php",
+        "/minio/bootstrap/v1/verify",
+        "/api/index.php/v1/config/application",
+        "/remote_agent.php",
+        "getphpinfo.php",
+        "/admin/createadmintoken.html",
+        "/setup/setupadministrator.action",
+        "/setup/setup-snoop.jsp",
+        "/json/setup-restore.action",
+        "/.%%32%65/",
+        "/?unix:",
+        "/_ignition/execute-solution",
+        "/apisix/admin/routes",
+        "/?%7b.%7d",
+        "/console/images/%252e%252e%252fconsole.portal",
+    }
+)
+
+
+def _is_sensitive_endpoint(path: str) -> bool:
+    """Return True if path matches known sensitive or exploit endpoint."""
+    p_lower = path.lower()
+    return any(s in p_lower for s in SENSITIVE_ENDPOINTS)
+
+
+def _framework_name(rule: Rule) -> str:
+    """Return canonical framework or product display name for a CVE rule."""
+    name = rule.name
+    pkg = rule.patterns._get("package", "")
+    if name.startswith("Next.js") or str(pkg).lower() == "next":
+        return "Next.js"
+    if "wordpress" in str(pkg).lower() or str(pkg).startswith("wp-") or any(
+        k in str(pkg) for k in ("backup-backup", "ultimate-member", "essential-addons", "bricks")
+    ):
+        return "WordPress"
+    if name.startswith("Atlassian Confluence"):
+        return "Confluence"
+    if name.startswith("PHP"):
+        return "PHP"
+    if name.startswith("Apache HTTP"):
+        return "Apache"
+    return name.split()[0]
+
+
+def _format_surface_advisory(rule: Rule, c_info: tuple[str, str, str] | None) -> str:
+    """Format an advisory message for generic framework surface detection."""
+    fw = _framework_name(rule)
+    if c_info:
+        _, op, target_ver = c_info
+        verify_cond = f">= {target_ver}" if op == "<" else (f"!= {target_ver}" if op == "=" else f"> {target_ver}")
+        return f"detected {fw} framework surface (verify {fw} {verify_cond} for {rule.cve})"
+    return f"detected {fw} framework surface for {rule.cve}"
+
+
 def _match_stack_cves(
     headers: dict[str, str],
     body: str,
     discovered_paths: list[str] | None = None,
-) -> list[tuple[Rule, str]]:
-    """Correlate HTTP response headers and path exposures with curated CVEs."""
+) -> list[tuple[Rule, str, bool]]:
+    """Correlate HTTP response headers and path exposures with curated CVEs.
+
+    Returns a list of tuples: (rule, detail_message, is_confirmed_vulnerable).
+    """
     rules = _rules_for(ANALYZER_NAME)
-    matches: list[tuple[Rule, str]] = []
+    vulnerable_matches: list[tuple[Rule, str, bool]] = []
+    advisory_matches: dict[str, tuple[Rule, str, tuple[int, ...]]] = {}
     lowered_body = body.lower() if body else ""
     paths = [p.lower() for p in (discovered_paths or [])]
+    lowered_headers = {k.lower(): v for k, v in headers.items()}
 
     # Extract explicit (product, version) pairs from headers
     detected_versions: list[tuple[str, str, str]] = []
@@ -231,61 +295,107 @@ def _match_stack_cves(
             detected_versions.append((hname, prod, ver))
 
     for rule in rules:
-        matched_rule = False
+        c_info = _parse_constraint(rule.description)
+        if not c_info:
+            continue
+        target_pkg, op, target_ver = c_info
 
-        # Header correlation requires explicit version matching
-        if detected_versions:
-            c_info = _parse_constraint(rule.description)
-            if c_info:
-                target_pkg, op, target_ver = c_info
-                aliases = {target_pkg, target_pkg.replace("-", "").replace(".", "")}
-                rule_hdrs = rule.patterns._get("headers", [])
-                if isinstance(rule_hdrs, list):
-                    for h in rule_hdrs:
-                        h_str = str(h).lower()
-                        if ":" in h_str:
-                            val_part = h_str.partition(":")[2].strip().split("/")[0].strip()
-                            if val_part:
-                                aliases.add(val_part)
-                        else:
-                            aliases.add(h_str)
+        # Candidate aliases for product matching
+        aliases = {target_pkg, target_pkg.replace("-", "").replace(".", "")}
+        if target_pkg == "next":
+            aliases.update({"next.js", "nextjs"})
+        elif target_pkg == "struts2":
+            aliases.add("struts")
+        elif target_pkg == "apache-superset":
+            aliases.add("superset")
+        elif target_pkg == "log4j-core":
+            aliases.add("log4j")
+        elif target_pkg.startswith("spring-"):
+            aliases.add("spring")
 
-                for hname, prod, ver in detected_versions:
-                    if _match_product(prod, aliases):
-                        if _version_matches(ver, op, target_ver):
-                            matches.append(
-                                (
-                                    rule,
-                                    f"header '{hname}: {headers[hname]}' version {ver} matches {rule.cve} ({rule.name})",
-                                )
-                            )
-                            matched_rule = True
-                            break
+        rule_hdrs = rule.patterns._get("headers", [])
+        if isinstance(rule_hdrs, list):
+            for h in rule_hdrs:
+                h_str = str(h).lower()
+                if ":" in h_str:
+                    val_part = h_str.partition(":")[2].strip().split("/")[0].strip()
+                    if val_part:
+                        aliases.add(val_part)
+                else:
+                    aliases.add(h_str)
 
-        if matched_rule:
+        # 1. Check for explicit vulnerable version in headers
+        vulnerable_match: tuple[Rule, str, bool] | None = None
+        for hname, prod, ver in detected_versions:
+            if _match_product(prod, aliases):
+                if _version_matches(ver, op, target_ver):
+                    vulnerable_match = (
+                        rule,
+                        f"header '{hname}: {headers[hname]}' version {ver} matches {rule.cve} ({rule.name})",
+                        True,
+                    )
+                    break
+
+        if vulnerable_match:
+            vulnerable_matches.append(vulnerable_match)
             continue
 
-        # Check paths
+        # 2. Check paths (discovered links and body references)
         rule_paths = rule.patterns._get("paths", [])
+        advisory_match: tuple[Rule, str, tuple[int, ...]] | None = None
+        has_version = any(_match_product(p, aliases) for _, p, _ in detected_versions)
         if isinstance(rule_paths, list):
             for path_probe in rule_paths:
                 probe = str(path_probe).lower()
-                if probe in ("/"):
+                if probe in ("/", ""):
                     continue
-                # Check discovered links
-                if any(probe in p for p in paths):
-                    matches.append(
-                        (rule, f"endpoint '{probe}' exposed on host matches {rule.cve} ({rule.name})")
-                    )
-                    break
-                # Check body references
-                if probe in lowered_body and len(probe) > 6:
-                    matches.append(
-                        (rule, f"reference to '{probe}' in markup matches {rule.cve} ({rule.name})")
-                    )
-                    break
 
-    return matches
+                # Check discovered links (confirmed accessible)
+                if any(probe in p for p in paths):
+                    if _is_sensitive_endpoint(probe):
+                        vulnerable_match = (
+                            rule,
+                            f"endpoint '{probe}' exposed on host matches {rule.cve} ({rule.name})",
+                            True,
+                        )
+                        break
+                    elif not has_version:
+                        if not advisory_match:
+                            advisory = _format_surface_advisory(rule, c_info)
+                            advisory_match = (rule, advisory, _parse_version(target_ver))
+
+                # Check body references (markup)
+                if not has_version and probe in lowered_body and len(probe) > 6:
+                    if not advisory_match:
+                        advisory = _format_surface_advisory(rule, c_info)
+                        advisory_match = (rule, advisory, _parse_version(target_ver))
+
+        if vulnerable_match:
+            vulnerable_matches.append(vulnerable_match)
+            continue
+
+        # 3. Check for unversioned framework header disclosure (e.g. X-Powered-By: Next.js)
+        if not advisory_match and not has_version:
+            if target_pkg in ("next", "express") or any(k in str(rule_hdrs).lower() for k in ("next", "express")):
+                for hname in ("x-powered-by", "server"):
+                    if hname in lowered_headers:
+                        hval_lower = lowered_headers[hname].lower()
+                        if any(a in hval_lower for a in aliases):
+                            advisory = _format_surface_advisory(rule, c_info)
+                            advisory_match = (rule, advisory, _parse_version(target_ver))
+                            break
+
+        if advisory_match:
+            fw = _framework_name(rule)
+            if fw not in advisory_matches or advisory_match[2] > advisory_matches[fw][2]:
+                advisory_matches[fw] = advisory_match
+
+    # Combine: confirmed vulnerable matches first, then deduplicated advisories
+    combined: list[tuple[Rule, str, bool]] = list(vulnerable_matches)
+    for rule, msg, _ in advisory_matches.values():
+        combined.append((rule, msg, False))
+
+    return combined
 
 
 def _analyze(target: SourceFile) -> list[Finding]:
