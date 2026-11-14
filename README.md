@@ -852,6 +852,150 @@ Common options: `--format cli|json|sarif`, `--output FILE`, `--fail-on none|low|
 
 ---
 
+## Authorized Security Sandboxes & Test Targets (50 URLs)
+
+Sentinel's passive URL inspection engine can be safely tested against curated, publicly accessible security sandboxes and intentional testbeds. Because Sentinel issues strictly read-only HTTP `GET` requests and benign reflection markers, testing against these authorized domains produces zero malicious traffic and modifies no remote server state.
+
+### Automated PowerShell Batch Verification
+
+Run the zero-flag `sentinel <url>` command across test targets in PowerShell:
+
+```powershell
+# Curated list of authorized sandbox targets
+$targets = @(
+    # Google Firing Range
+    "https://public-firing-range.appspot.com/reflected/index.html",
+    "https://public-firing-range.appspot.com/reflected/parameter/body?q=test",
+    "https://public-firing-range.appspot.com/reflected/parameter/attribute_unquoted?q=test",
+    "https://public-firing-range.appspot.com/reflected/parameter/attribute_quoted?q=test",
+    "https://public-firing-range.appspot.com/reflected/parameter/script?q=test",
+    "https://public-firing-range.appspot.com/dom/index.html",
+    "https://public-firing-range.appspot.com/dom/toxicdom/location/hash/innerHtml",
+    "https://public-firing-range.appspot.com/dom/toxicdom/location/search/documentWrite",
+    "https://public-firing-range.appspot.com/dom/toxicdom/postMessage/eval",
+    "https://public-firing-range.appspot.com/redirect/index.html",
+    "https://public-firing-range.appspot.com/redirect/parameter?url=https://example.com",
+    "https://public-firing-range.appspot.com/cors/index.html",
+    "https://public-firing-range.appspot.com/escape/index.html",
+    "https://public-firing-range.appspot.com/tags/index.html",
+    "https://public-firing-range.appspot.com/urldom/index.html",
+    # Acunetix / Vulnweb
+    "http://testphp.vulnweb.com/",
+    "http://testphp.vulnweb.com/login.php",
+    "http://testphp.vulnweb.com/search.php?test=query",
+    "http://testphp.vulnweb.com/artists.php?artist=1",
+    "http://testphp.vulnweb.com/categories.php",
+    "http://testaspnet.vulnweb.com/",
+    "http://testaspnet.vulnweb.com/Default.aspx",
+    "http://testasp.vulnweb.com/",
+    "http://testhtml5.vulnweb.com/",
+    "http://rest.vulnweb.com/",
+    # PortSwigger & BadSSL
+    "https://portswigger.net/web-security",
+    "https://badssl.com/",
+    "https://mixed-script.badssl.com/",
+    "https://mixed.badssl.com/",
+    "https://mixed-form.badssl.com/",
+    "https://http.badssl.com/",
+    "https://hsts.badssl.com/",
+    "https://upgrade.badssl.com/",
+    # OWASP & Vulnerable Demo Apps
+    "https://demo.owasp-juice.shop/",
+    "https://juice-shop.herokuapp.com/",
+    "http://demo.testfire.net/",
+    "http://demo.testfire.net/login.jsp",
+    "http://demo.testfire.net/search.jsp?query=test",
+    "http://zero.webappsecurity.com/",
+    "http://zero.webappsecurity.com/login.html",
+    "https://ginandjuice.shop/",
+    "https://ginandjuice.shop/catalog",
+    "https://ginandjuice.shop/login",
+    # HTTP & Reference Endpoints
+    "https://example.com",
+    "https://www.iana.org/domains/reserved",
+    "https://httpbin.org/",
+    "https://httpbin.org/headers",
+    "https://httpbin.org/cookies/set/session/test123",
+    "https://httpbin.org/response-headers?X-Powered-By=PHP/7.3.10",
+    "http://localhost"
+)
+
+# Automated batch execution loop
+$targets | ForEach-Object {
+    Write-Host "`n========================================" -ForegroundColor Cyan
+    Write-Host "[*] Auditing: $_" -ForegroundColor Cyan
+    Write-Host "========================================" -ForegroundColor Cyan
+    sentinel $_
+}
+```
+
+PowerShell one-liner shorthand:
+```powershell
+$targets | ForEach-Object { Write-Host "`n[*] Auditing: $_" -ForegroundColor Cyan; sentinel $_ }
+```
+
+### 1. Google Firing Range (Reflected XSS, DOM XSS, Redirects, CORS)
+- `https://public-firing-range.appspot.com/reflected/index.html`
+- `https://public-firing-range.appspot.com/reflected/parameter/body?q=test`
+- `https://public-firing-range.appspot.com/reflected/parameter/attribute_unquoted?q=test`
+- `https://public-firing-range.appspot.com/reflected/parameter/attribute_quoted?q=test`
+- `https://public-firing-range.appspot.com/reflected/parameter/script?q=test`
+- `https://public-firing-range.appspot.com/dom/index.html`
+- `https://public-firing-range.appspot.com/dom/toxicdom/location/hash/innerHtml`
+- `https://public-firing-range.appspot.com/dom/toxicdom/location/search/documentWrite`
+- `https://public-firing-range.appspot.com/dom/toxicdom/postMessage/eval`
+- `https://public-firing-range.appspot.com/redirect/index.html`
+- `https://public-firing-range.appspot.com/redirect/parameter?url=https://example.com`
+- `https://public-firing-range.appspot.com/cors/index.html`
+- `https://public-firing-range.appspot.com/escape/index.html`
+- `https://public-firing-range.appspot.com/tags/index.html`
+- `https://public-firing-range.appspot.com/urldom/index.html`
+
+### 2. Acunetix / Vulnweb Official Test Sites (Forms, Stack Banners, Classic Web Surface)
+- `http://testphp.vulnweb.com/`
+- `http://testphp.vulnweb.com/login.php`
+- `http://testphp.vulnweb.com/search.php?test=query`
+- `http://testphp.vulnweb.com/artists.php?artist=1`
+- `http://testphp.vulnweb.com/categories.php`
+- `http://testaspnet.vulnweb.com/`
+- `http://testaspnet.vulnweb.com/Default.aspx`
+- `http://testasp.vulnweb.com/`
+- `http://testhtml5.vulnweb.com/`
+- `http://rest.vulnweb.com/`
+
+### 3. PortSwigger & BadSSL (Transport, Mixed Content, TLS, Security Headers)
+- `https://portswigger.net/web-security`
+- `https://badssl.com/`
+- `https://mixed-script.badssl.com/`
+- `https://mixed.badssl.com/`
+- `https://mixed-form.badssl.com/`
+- `https://http.badssl.com/`
+- `https://hsts.badssl.com/`
+- `https://upgrade.badssl.com/`
+
+### 4. OWASP & Authorized Vulnerable Demo Apps (SPA, API, Cookies, CSP)
+- `https://demo.owasp-juice.shop/`
+- `https://juice-shop.herokuapp.com/`
+- `http://demo.testfire.net/`
+- `http://demo.testfire.net/login.jsp`
+- `http://demo.testfire.net/search.jsp?query=test`
+- `http://zero.webappsecurity.com/`
+- `http://zero.webappsecurity.com/login.html`
+- `https://ginandjuice.shop/`
+- `https://ginandjuice.shop/catalog`
+- `https://ginandjuice.shop/login`
+
+### 5. HTTP & Header Reference Endpoints (Headers, Cookies, Version Banners, Whitelist)
+- `https://example.com`
+- `https://www.iana.org/domains/reserved`
+- `https://httpbin.org/`
+- `https://httpbin.org/headers`
+- `https://httpbin.org/cookies/set/session/test123`
+- `https://httpbin.org/response-headers?X-Powered-By=PHP/7.3.10`
+- `http://localhost`
+
+---
+
 ## Safety model
 
 * Static analysis **parses** source with `ast`; it never imports, executes, or evaluates it.
