@@ -105,6 +105,113 @@ def _match_manifest_dependencies(
     return findings
 
 
+def _parse_constraint(description: str) -> tuple[str, str, str] | None:
+    """Parse 'Affects <pkg> (<op><ver>)' from rule description."""
+    idx = description.lower().rfind("affects ")
+    if idx == -1:
+        return None
+    part = description[idx + len("affects "):].strip().rstrip(".")
+    if "(" in part and ")" in part:
+        pkg, _, rest = part.partition("(")
+        pkg = pkg.strip().lower()
+        constraint = rest.rstrip(")").strip()
+        op = ""
+        ver = ""
+        for i, ch in enumerate(constraint):
+            if ch in "<>=":
+                op += ch
+            else:
+                ver = constraint[i:].strip()
+                break
+        if op and ver:
+            return pkg, op, ver
+    return None
+
+
+def _parse_version(v_str: str) -> tuple[int, ...]:
+    """Extract numeric components from a version string."""
+    nums: list[int] = []
+    current = ""
+    for ch in v_str:
+        if ch.isdigit():
+            current += ch
+        else:
+            if current:
+                nums.append(int(current))
+                current = ""
+    if current:
+        nums.append(int(current))
+    return tuple(nums)
+
+
+def _version_matches(detected: str, op: str, constraint: str) -> bool:
+    """Compare detected version against constraint operator."""
+    v_det = _parse_version(detected)
+    v_con = _parse_version(constraint)
+    if not v_det or not v_con:
+        return False
+    max_len = max(len(v_det), len(v_con))
+    p_det = v_det + (0,) * (max_len - len(v_det))
+    p_con = v_con + (0,) * (max_len - len(v_con))
+    if op == "<":
+        return p_det < p_con
+    if op == "<=":
+        return p_det <= p_con
+    if op in ("=", "=="):
+        return p_det == p_con
+    if op == ">":
+        return p_det > p_con
+    if op == ">=":
+        return p_det >= p_con
+    return False
+
+
+def _extract_product_versions(header_name: str, header_val: str) -> list[tuple[str, str]]:
+    """Extract (product, version) pairs from response headers."""
+    h_lower = header_name.lower()
+    val = header_val.strip()
+    if not val:
+        return []
+
+    # Dedicated version headers where product is implied by header name
+    if h_lower in ("x-jenkins", "x-aspnet-version", "x-runtime"):
+        first_char = val[0] if val else ""
+        if first_char.isdigit():
+            prod = "jenkins" if "jenkins" in h_lower else ("aspnet" if "aspnet" in h_lower else h_lower)
+            v = val.split()[0].strip()
+            return [(prod, v)]
+
+    results: list[tuple[str, str]] = []
+    cleaned = val.replace(",", " ").replace(";", " ")
+    tokens = cleaned.split()
+    i = 0
+    while i < len(tokens):
+        token = tokens[i].strip("()")
+        if "/" in token:
+            prod, _, ver = token.partition("/")
+            prod = prod.strip()
+            ver = ver.strip()
+            if prod and ver and ver[0].isdigit():
+                results.append((prod.lower(), ver))
+        elif i + 1 < len(tokens):
+            next_token = tokens[i + 1].strip("()")
+            if token and next_token and next_token[0].isdigit():
+                results.append((token.lower(), next_token))
+                i += 1
+        i += 1
+    return results
+
+
+def _match_product(prod: str, aliases: set[str]) -> bool:
+    """Check if detected product name matches any rule alias."""
+    prod_clean = prod.replace("-", "").replace(".", "").replace("_", "")
+    for a in aliases:
+        a_clean = a.replace("-", "").replace(".", "").replace("_", "")
+        if prod == a or prod_clean == a_clean:
+            return True
+    return False
+
+
 def _match_stack_cves(
     headers: dict[str, str],
     body: str,
@@ -113,35 +220,53 @@ def _match_stack_cves(
     """Correlate HTTP response headers and path exposures with curated CVEs."""
     rules = _rules_for(ANALYZER_NAME)
     matches: list[tuple[Rule, str]] = []
-    lowered_headers = {k.lower(): v.lower() for k, v in headers.items()}
     lowered_body = body.lower() if body else ""
     paths = [p.lower() for p in (discovered_paths or [])]
 
-    for rule in rules:
-        rule_hdrs = rule.patterns._get("headers", [])
-        rule_paths = rule.patterns._get("paths", [])
+    # Extract explicit (product, version) pairs from headers
+    detected_versions: list[tuple[str, str, str]] = []
+    for hname, hval in headers.items():
+        pairs = _extract_product_versions(hname, hval)
+        for prod, ver in pairs:
+            detected_versions.append((hname, prod, ver))
 
-        # Check headers
-        if isinstance(rule_hdrs, list):
-            for hdr_probe in rule_hdrs:
-                probe = str(hdr_probe).lower()
-                if ":" in probe:
-                    hname, _, hval = probe.partition(":")
-                    hname = hname.strip()
-                    hval = hval.strip()
-                    if hname in lowered_headers and hval in lowered_headers[hname]:
-                        matches.append(
-                            (rule, f"header '{hname}: {lowered_headers[hname]}' matches {rule.cve} ({rule.name})")
-                        )
-                        break
-                else:
-                    if probe in lowered_headers:
-                        matches.append(
-                            (rule, f"header '{probe}' indicates potential {rule.cve} ({rule.name})")
-                        )
-                        break
+    for rule in rules:
+        matched_rule = False
+
+        # Header correlation requires explicit version matching
+        if detected_versions:
+            c_info = _parse_constraint(rule.description)
+            if c_info:
+                target_pkg, op, target_ver = c_info
+                aliases = {target_pkg, target_pkg.replace("-", "").replace(".", "")}
+                rule_hdrs = rule.patterns._get("headers", [])
+                if isinstance(rule_hdrs, list):
+                    for h in rule_hdrs:
+                        h_str = str(h).lower()
+                        if ":" in h_str:
+                            val_part = h_str.partition(":")[2].strip().split("/")[0].strip()
+                            if val_part:
+                                aliases.add(val_part)
+                        else:
+                            aliases.add(h_str)
+
+                for hname, prod, ver in detected_versions:
+                    if _match_product(prod, aliases):
+                        if _version_matches(ver, op, target_ver):
+                            matches.append(
+                                (
+                                    rule,
+                                    f"header '{hname}: {headers[hname]}' version {ver} matches {rule.cve} ({rule.name})",
+                                )
+                            )
+                            matched_rule = True
+                            break
+
+        if matched_rule:
+            continue
 
         # Check paths
+        rule_paths = rule.patterns._get("paths", [])
         if isinstance(rule_paths, list):
             for path_probe in rule_paths:
                 probe = str(path_probe).lower()

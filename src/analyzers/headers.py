@@ -1869,7 +1869,7 @@ def _check_stack_surface(
     has_critical = False
     for rule, detail in cve_matches:
         reasons.append(detail)
-        if rule.severity.value == "CRITICAL":
+        if rule.severity.value in ("CRITICAL", "HIGH"):
             has_critical = True
 
     if surface_reasons:
