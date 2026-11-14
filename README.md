@@ -4,8 +4,7 @@
 
 **Defensive SAST & Passive HTTP Security Auditor**
 
-Static analysis of Python web sources for injection sinks, plus passive security-header
-auditing of live responses — with zero offensive capability.
+Static analysis of full-stack web and container sources for injection sinks and misconfigurations, plus deep passive security-header and surface auditing of live responses — with zero offensive capability.
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -18,19 +17,17 @@ auditing of live responses — with zero offensive capability.
 
 ## 1. Overview
 
-Sentinel answers one question about a Python web application: **does its code and its
+Sentinel answers one question about a web application: **does its code and its
 HTTP surface follow defensive security practice?**
 
 It does this two ways, and only these two ways:
 
 | Capability | Mechanism | Input |
 |---|---|---|
-| **Static analysis (SAST)** | Python `ast` traversal of your own source tree | local file or directory |
-| **Passive header audit** | exactly one HTTP request; response metadata is inspected | one operator-supplied URL |
+| **Static analysis (SAST)** | Python `ast` traversal plus multi-file static pattern matching across full-stack web & container files (`.py`, `.js`, `.ts`, `.jsx`, `.tsx`, `.php`, `.html`, `.env`, `Dockerfile`, `docker-compose.yml`) | local file or directory |
+| **Passive web surface audit** | Deep same-origin multi-page inspection (up to 25 pages) with inert reflection probing and passive CVE correlation | one operator-supplied URL |
 
-There is deliberately **no exploitation engine**: no payload generation, no crawling, no
-fuzzing, no brute forcing, no request replay. Source is parsed, never imported or executed.
-A header audit sends one ordinary `GET` and reads what comes back.
+There is deliberately **no exploitation engine**: no offensive payload generation, no fuzzing, no brute forcing, and no mutating HTTP requests (`POST`/`PUT`/`DELETE`). Source is parsed or pattern-matched, never imported or executed. Web surface audits issue read-only `GET` requests to same-origin pages and inspect response metadata, security headers, cookies, and inert reflection canaries (`<sentinelprobe>`).
 
 Detection logic is **data-driven**. Every rule — its OWASP category, CWE id, severity,
 detection pattern, and remediation example — lives in a JSON document under `src/json/`
@@ -74,9 +71,9 @@ the ruleset is auditable by a security reviewer without reading analyzer code.
    ┌────────────────────────────────────┐          ┌──────────────────────────────┐
    │  reporters/   (output)             │          │  json/   (rule data)         │
    │                                    │          │                              │
-   │  terminal.py   Plain-text URL      │          │  22 rule documents           │
-   │                summary, Rich       │          │  172 total security rules    │
-   │                tables for details  │          │  rule_id, name, category,    │
+   │  terminal.py   Clean plain-text    │          │  22 rule documents           │
+   │                terminal output with│          │  172 total security rules    │
+   │                zero-flag summaries │          │  rule_id, name, category,    │
    │  json.py       CI/CD envelope      │          │  cwe_id, severity, desc,     │
    │  sarif.py      SARIF v2.1.0 output │          │  cve, cve_date, remediation  │
    └────────────────────────────────────┘          └──────────────────────────────┘
@@ -91,7 +88,7 @@ Sentinel/
 ├── src/
 │   ├── core/{engine,loader}.py
 │   ├── analyzers/{sqli,xss,cmdi,traversal,secrets,ssrf,deserial,xxe,ssti,auth,redos,api,deps,host,idor,cloud,client,tamper,logic,cve,webfile,headers}.py
-│   ├── json/{sqli,xss,cmdi,traversal,secrets,ssrf,deserial,xxe,ssti,auth,redos,api,deps,host,idor,cloud,client,tamper,logic,cve,webfile,headers}.json
+│   ├── json/{sqli,xss,cmdi,traversal,secrets,ssrf,deserial,xxe,ssti,auth,redos,api,deps,host,idor,cloud,client,tamper,logic,cve,webfile,headers,whitelist}.json
 │   ├── reporters/{terminal,json,sarif}.py
 │   └── cli.py
 ├── pyproject.toml
@@ -795,9 +792,9 @@ name: Sentinel Security Gate
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, main ]
+    branches: [ master ]
 
 jobs:
   sentinel-audit:
@@ -934,66 +931,6 @@ PowerShell one-liner shorthand:
 $targets | ForEach-Object { Write-Host "`n[*] Auditing: $_" -ForegroundColor Cyan; sentinel $_ }
 ```
 
-### 1. Google Firing Range (Reflected XSS, DOM XSS, Redirects, CORS)
-- `https://public-firing-range.appspot.com/reflected/index.html`
-- `https://public-firing-range.appspot.com/reflected/parameter/body?q=test`
-- `https://public-firing-range.appspot.com/reflected/parameter/attribute_unquoted?q=test`
-- `https://public-firing-range.appspot.com/reflected/parameter/attribute_quoted?q=test`
-- `https://public-firing-range.appspot.com/reflected/parameter/script?q=test`
-- `https://public-firing-range.appspot.com/dom/index.html`
-- `https://public-firing-range.appspot.com/dom/toxicdom/location/hash/innerHtml`
-- `https://public-firing-range.appspot.com/dom/toxicdom/location/search/documentWrite`
-- `https://public-firing-range.appspot.com/dom/toxicdom/postMessage/eval`
-- `https://public-firing-range.appspot.com/redirect/index.html`
-- `https://public-firing-range.appspot.com/redirect/parameter?url=https://example.com`
-- `https://public-firing-range.appspot.com/cors/index.html`
-- `https://public-firing-range.appspot.com/escape/index.html`
-- `https://public-firing-range.appspot.com/tags/index.html`
-- `https://public-firing-range.appspot.com/urldom/index.html`
-
-### 2. Acunetix / Vulnweb Official Test Sites (Forms, Stack Banners, Classic Web Surface)
-- `http://testphp.vulnweb.com/`
-- `http://testphp.vulnweb.com/login.php`
-- `http://testphp.vulnweb.com/search.php?test=query`
-- `http://testphp.vulnweb.com/artists.php?artist=1`
-- `http://testphp.vulnweb.com/categories.php`
-- `http://testaspnet.vulnweb.com/`
-- `http://testaspnet.vulnweb.com/Default.aspx`
-- `http://testasp.vulnweb.com/`
-- `http://testhtml5.vulnweb.com/`
-- `http://rest.vulnweb.com/`
-
-### 3. PortSwigger & BadSSL (Transport, Mixed Content, TLS, Security Headers)
-- `https://portswigger.net/web-security`
-- `https://badssl.com/`
-- `https://mixed-script.badssl.com/`
-- `https://mixed.badssl.com/`
-- `https://mixed-form.badssl.com/`
-- `https://http.badssl.com/`
-- `https://hsts.badssl.com/`
-- `https://upgrade.badssl.com/`
-
-### 4. OWASP & Authorized Vulnerable Demo Apps (SPA, API, Cookies, CSP)
-- `https://demo.owasp-juice.shop/`
-- `https://juice-shop.herokuapp.com/`
-- `http://demo.testfire.net/`
-- `http://demo.testfire.net/login.jsp`
-- `http://demo.testfire.net/search.jsp?query=test`
-- `http://zero.webappsecurity.com/`
-- `http://zero.webappsecurity.com/login.html`
-- `https://ginandjuice.shop/`
-- `https://ginandjuice.shop/catalog`
-- `https://ginandjuice.shop/login`
-
-### 5. HTTP & Header Reference Endpoints (Headers, Cookies, Version Banners, Whitelist)
-- `https://example.com`
-- `https://www.iana.org/domains/reserved`
-- `https://httpbin.org/`
-- `https://httpbin.org/headers`
-- `https://httpbin.org/cookies/set/session/test123`
-- `https://httpbin.org/response-headers?X-Powered-By=PHP/7.3.10`
-- `http://localhost`
-
 ---
 
 ## Safety model
@@ -1037,7 +974,7 @@ target is free of vulnerabilities.
 
 ## Limitations
 
-* Python sources only for SAST (`.py`, `.pyi`). Non-Python stacks are out of scope.
+* SAST scope: Full-stack coverage is provided across Python (`.py`, `.pyi`), JavaScript/TypeScript/React (`.js`, `.ts`, `.jsx`, `.tsx`), PHP (`.php`), HTML (`.html`), environment secrets (`.env`), and container manifests (`Dockerfile`, `docker-compose.yml`). AST-based semantic analysis applies to Python, while regex and pattern-based rule auditing applies to JS/TS/PHP/HTML and container manifests.
 * Header auditing crawls up to 25 same-origin pages by default; it does not execute
   JavaScript and will not see headers added client-side. Pass `--no-deep` for a single-page check.
 * `XSS002`/`XSS004` are heuristic: they follow data flow through named variables, not
