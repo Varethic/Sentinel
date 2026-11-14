@@ -41,7 +41,6 @@ MESSAGES: dict[str, str] = {
     ),
 }
 
-# Methods that take the command as their first positional argument.
 COMMAND_SINKS: frozenset[str] = frozenset(
     {
         "system",
@@ -60,7 +59,6 @@ COMMAND_SINKS: frozenset[str] = frozenset(
     }
 )
 
-# subprocess/os helpers that only become dangerous together with shell=True.
 SHELL_SINKS: frozenset[str] = frozenset(
     {
         "run",
@@ -75,7 +73,6 @@ SHELL_SINKS: frozenset[str] = frozenset(
 
 DYNAMIC_SINKS: frozenset[str] = frozenset({"eval", "exec", "execfile"})
 
-# Literal-only callables that are not dangerous even when dynamic.
 SAFE_EVAL_WRAPPERS: frozenset[str] = frozenset({"literal_eval"})
 
 _KIND_LABELS: dict[DynamicKind, str] = {
@@ -157,7 +154,7 @@ def _first_argument(node: ast.Call) -> ast.AST | None:
 class CmdiVisitor(Visitor):
     """AST visitor implementing the command injection rules."""
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect every call that matches a configured command sink."""
         self._inspect(node)
         self.generic_visit(node)
@@ -198,7 +195,6 @@ class CmdiVisitor(Visitor):
         argument = _first_argument(node)
         if argument is None:
             return False
-        # A literal command or an argument list is not injection-prone.
         if _is_literal(argument) or _is_sequence_literal(argument):
             return False
         return _classify(argument) is not DynamicKind.NONE
@@ -228,10 +224,8 @@ class CmdiVisitor(Visitor):
             return False
         if _is_literal(argument):
             return False
-        # Literal-eval wrappers are explicitly safe.
         if isinstance(argument, ast.Call) and _call_name(argument) in SAFE_EVAL_WRAPPERS:
             return False
-        # constant-folded f-strings (no placeholders) are effectively literals.
         if isinstance(argument, ast.JoinedStr) and all(
             isinstance(value, ast.Constant) for value in argument.values
         ):

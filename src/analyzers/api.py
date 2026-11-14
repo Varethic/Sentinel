@@ -42,12 +42,10 @@ GRAPHQL_MODULES: frozenset[str] = frozenset(
     {"graphene", "strawberry", "ariadne", "graphql", "graphql_core"}
 )
 
-# Attribute names that read a whole client payload.
 REQUEST_SOURCES: frozenset[str] = frozenset(
     {"json", "form", "post", "data", "body", "json_body", "get_json", "query_params"}
 )
 
-# Model bases whose constructors accept arbitrary keyword fields.
 MODEL_HINTS: frozenset[str] = frozenset(
     {"model", "schema", "base", "entity", "document", "table", "row"}
 )
@@ -112,7 +110,7 @@ class ApiVisitor(Visitor):
         super().__init__(target, rules)
         self._aliases = _import_aliases(target.tree)
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect every call that may build a schema or a model."""
         self._inspect_introspection(node)
         self._inspect_mass_assignment(node)
@@ -128,15 +126,10 @@ class ApiVisitor(Visitor):
             item.lower()
             for item in (rule.patterns._strings("sink_modules") or GRAPHQL_MODULES)
         )
-        # Resolve through the import map so ``from graphene import Schema``
-        # followed by ``Schema(...)`` is recognised, while an unrelated class
-        # that merely happens to be named Schema is not.
         dotted = _resolve_dotted(_dotted_name(node.func), self._aliases)
         matched = _matches_module(dotted, modules)
         if not matched:
             return
-        # Accept either the sink name itself (Schema) or the aliased symbol
-        # (strawberry.schema), so 'from strawberry import Schema as S' works.
         final = dotted.rsplit(".", 1)[-1]
         if final not in sinks and not _matches_module(
             dotted.rsplit(".", 1)[0] if "." in dotted else "", sinks
@@ -161,7 +154,6 @@ class ApiVisitor(Visitor):
         for keyword in node.keywords:
             if keyword.arg is not None:
                 continue
-            # ``**payload`` is only dangerous when the payload is request data.
             if not _reads_request_payload(keyword.value):
                 continue
             if not _looks_like_model(node):

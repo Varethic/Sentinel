@@ -41,12 +41,10 @@ MESSAGES: dict[str, str] = {
     ),
 }
 
-# Escaping/sanitizing wrappers that make a dynamic value safe again.
 SAFE_WRAPPERS: frozenset[str] = frozenset(
     {"escape", "escape_html", "html_escape", "escapejs", "quote", "clean", "bleach"}
 )
 
-# Content types that would suppress the XSS004 check.
 NON_HTML_MARKERS: frozenset[str] = frozenset(
     {"application/json", "text/plain", "application/octet-stream", "text/csv"}
 )
@@ -121,7 +119,7 @@ def _requests_non_html(node: ast.Call) -> bool:
 class XssVisitor(Visitor):
     """AST visitor implementing the XSS rules."""
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect every call against the configured HTML sinks."""
         self._inspect(node)
         self.generic_visit(node)

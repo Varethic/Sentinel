@@ -52,7 +52,6 @@ def _trim_snippet(snippet: str, width: int = SNIPPET_WIDTH) -> str:
 def _findings_table(findings: Sequence[Finding], title: str, header_mode: bool = False) -> Table:
     """Build the main findings table."""
     if header_mode:
-        # Header findings have no line number; show the inspected header instead.
         labels = [_header_label(finding) for finding in findings]
         caption = "HEADER"
     else:
@@ -281,10 +280,6 @@ def _render_headers_report(
     if remediation is not None:
         out.print(Panel(remediation, title="Remediation guidance", border_style="cyan"))
 
-
-# --------------------------------------------------------------------------
-# Plain-text URL summary: one line per category, no borders
-# --------------------------------------------------------------------------
 
 CATEGORY_LABELS: tuple[str, ...] = (
     "xss",

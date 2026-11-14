@@ -45,12 +45,10 @@ TEMPLATE_MODULES: frozenset[str] = frozenset(
     }
 )
 
-# Callables whose first positional argument is the template *source*.
 SOURCE_SINKS: frozenset[str] = frozenset(
     {"template", "render_template_string", "from_string", "templateresponse"}
 )
 
-# Callables that take a template *path/name*; safe even with a dynamic value.
 PATH_SINKS: frozenset[str] = frozenset(
     {"render_template", "get_template", "select_template", "render"}
 )
@@ -110,7 +108,7 @@ class SstiVisitor(Visitor):
         """Return local names referring to a template class or helper."""
         return _resolve_import_sinks(self._target.tree, SOURCE_SINKS, TEMPLATE_MODULES)
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect every call that may compile a template."""
         self._inspect(node)
         self.generic_visit(node)

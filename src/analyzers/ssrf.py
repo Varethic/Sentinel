@@ -39,12 +39,10 @@ MESSAGES: dict[str, str] = {
     ),
 }
 
-# Callables that perform an outbound network request.
 REQUEST_SINKS: frozenset[str] = frozenset(
     {"get", "post", "put", "patch", "delete", "head", "request", "urlopen", "urlretrieve"}
 )
 
-# Names that indicate the value was checked before use.
 GUARD_TOKENS: frozenset[str] = frozenset(
     {
         "allowed",
@@ -65,7 +63,6 @@ GUARD_TOKENS: frozenset[str] = frozenset(
     }
 )
 
-# Guard function names that are compared against a host allow-list.
 GUARD_CALLS: frozenset[str] = frozenset(
     {"is_allowed_host", "allowed_host", "is_allowed", "is_public_host"}
 )
@@ -97,7 +94,6 @@ def _is_request_sink(node: ast.Call, sinks: frozenset[str], modules: frozenset[s
     if not dotted:
         return False
 
-    # Bare urllib helpers: urlopen/urlretrieve live in urllib.request.
     if dotted in {"urlopen", "urlretrieve"}:
         return True
 
@@ -106,7 +102,6 @@ def _is_request_sink(node: ast.Call, sinks: frozenset[str], modules: frozenset[s
     if tokens & lowered_modules:
         return True
 
-    # Client/session objects: requests.Session().get, httpx.Client().get, ...
     if isinstance(node.func, ast.Attribute):
         receiver = node.func.value
         receiver_name = _dotted_name(receiver).lower()
@@ -167,7 +162,7 @@ class SsrfVisitor(Visitor):
         """Store the file under analysis plus its applicable rules."""
         super().__init__(target, rules)
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect every call that looks like an outbound HTTP request."""
         self._inspect(node)
         self.generic_visit(node)

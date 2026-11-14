@@ -48,7 +48,6 @@ MESSAGES: dict[str, str] = {
     ),
 }
 
-# Sinks that take the query as their first positional argument.
 FIRST_ARG_SINKS: frozenset[str] = frozenset(
     {"execute", "executemany", "executescript", "raw", "text"}
 )
@@ -63,10 +62,8 @@ def _query_arguments(node: ast.Call) -> list[ast.AST]:
 
 def _has_parameter_binding(node: ast.Call) -> bool:
     """Return True when the call binds parameters separately from the query."""
-    # cursor.execute(sql, params) - a second positional argument is a binding.
     if len(node.args) >= 2:
         return True
-    # .bindparams(...) chained onto text() provides safe binding.
     for child in ast.walk(node):
         if isinstance(child, ast.Attribute) and child.attr == "bindparams":
             return True
@@ -77,7 +74,6 @@ def _looks_like_sql_argument(node: ast.AST, keywords: list[str]) -> bool:
     """Return True when an argument is (or contains) SQL-shaped text."""
     if _mentions_sql(node, keywords):
         return True
-    # A dynamic argument whose parts include SQL keywords is still suspicious.
     return any(
         _mentions_sql(child, keywords)
         for child in _iter_subexpressions(node)
@@ -111,7 +107,7 @@ def _classify(node: ast.AST) -> DynamicKind:
 class SqlVisitor(Visitor):
     """AST visitor implementing the SQL injection rules."""
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect every call whose name matches a configured SQL sink."""
         self._inspect(node)
         self.generic_visit(node)
@@ -131,8 +127,6 @@ class SqlVisitor(Visitor):
             return
 
         keywords = applicable[0].patterns._strings("sql_keywords")
-        # OR/M helpers such as text()/raw() are more specific than the generic
-        # execute() rules, so evaluate them first and report once per call.
         applicable.sort(key=lambda rule: rule.rule_id != "SQLI005")
         for argument in _query_arguments(node):
             if not _looks_like_sql_argument(argument, keywords):

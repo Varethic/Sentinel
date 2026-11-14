@@ -14,6 +14,7 @@ import secrets
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import Enum
+from functools import lru_cache
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
@@ -30,6 +31,49 @@ USER_AGENT: str = "SentinelAuditor/0.1 (passive-security-header-check)"
 
 DIRECTIVE_PATTERN = re.compile(r"^\s*([a-zA-Z0-9-]+)")
 MAX_AGE_PATTERN = re.compile(r"max-age\s*=\s*(\d+)", re.IGNORECASE)
+_RE_CSP_WILDCARD = re.compile(r"(^|[\s;])[*](\s|;|$)")
+
+_TAKEOVER_DOMAINS: tuple[str, ...] = (
+    "herokuapp.com",
+    "github.io",
+    "azurewebsites.net",
+    "s3.amazonaws.com",
+    "pantheonsite.io",
+    "firebaseapp.com",
+    "surge.sh",
+)
+_STORAGE_TOKENS: tuple[str, ...] = ("token", "jwt", "auth", "secret", "password", "session")
+_SENSITIVE_HIDDEN_PARAMS: tuple[str, ...] = (
+    "role",
+    "is_admin",
+    "admin",
+    "price",
+    "amount",
+    "discount",
+    "user_id",
+)
+_DOM_SINKS: tuple[str, ...] = ("innerhtml", "document.write", "document.writeln", "eval(")
+_DOM_SOURCES: tuple[str, ...] = (
+    "location.search",
+    "location.hash",
+    "location.href",
+    "window.location",
+    "document.location",
+    "document.url",
+    "document.referrer",
+)
+_SENSITIVE_PROBES: tuple[str, ...] = (
+    "/.git/",
+    "/.env",
+    "/phpinfo.php",
+    "/server-status",
+    "/setup/",
+    "remote_agent.php",
+    "/public/plugins/",
+    "/CFIDE/administrator/",
+    "/minio/bootstrap/v1/verify",
+    "GetPhpInfo.php",
+)
 
 
 @dataclass(frozen=True)
@@ -171,7 +215,6 @@ def _check_presence_rule(rule: Rule, headers: dict[str, str], url: str) -> list[
     findings: list[Finding] = []
     value = headers.get(name)
 
-    # Frame protection may instead be satisfied by CSP frame-ancestors.
     alternative = rule.patterns._get("alternative_header")
     alternative_directive = rule.patterns._get("alternative_directive")
     if value is None and alternative and alternative_directive:
@@ -218,7 +261,7 @@ def _check_presence_rule(rule: Rule, headers: dict[str, str], url: str) -> list[
     weak = [str(item).lower() for item in rule.patterns._strings("weak_values")]
     for marker in weak:
         if marker == "*":
-            if re.search(r"(^|[\s;])[*](\s|;|$)", value):
+            if _RE_CSP_WILDCARD.search(value):
                 findings.append(
                     _make_finding(
                         rule,
@@ -325,8 +368,6 @@ def _check_cors_rule(rule: Rule, headers: dict[str, str], url: str) -> list[Find
         else:
             reasons.append(f"{origin_name}: {origin} allows any origin")
     elif origin and origin_name in headers:
-        # A reflected origin is only a weakness when credentials are allowed,
-        # because arbitrary sites can then read authenticated responses.
         if credentials and not _is_static_origin(origin):
             reasons.append(f"{origin_name} reflects an arbitrary origin with credentials")
 
@@ -347,7 +388,6 @@ def _is_static_origin(origin: str) -> bool:
     lowered = origin.strip().lower()
     if lowered in {"", "null"}:
         return True
-    # Templates/placeholders indicate reflection of the request Origin header.
     return "{" in lowered or "}" in lowered or "%s" in lowered
 
 
@@ -530,6 +570,7 @@ def _is_whitelisted_host(host: str, patterns: Iterable[str]) -> bool:
     return False
 
 
+@lru_cache(maxsize=1)
 def _load_whitelist() -> dict[str, list[str]]:
     """Load default whitelist configuration and optional local .sentinelwhitelist."""
     whitelist_path = Path(__file__).resolve().parent.parent / "json" / "whitelist.json"
@@ -546,7 +587,6 @@ def _load_whitelist() -> dict[str, list[str]]:
         except (OSError, json.JSONDecodeError):
             pass
 
-    # Load local .sentinelwhitelist in current working directory if present
     local_whitelist = Path.cwd() / ".sentinelwhitelist"
     if local_whitelist.is_file():
         try:
@@ -617,8 +657,6 @@ def _analyze(
         final_url = str(response.url)
         headers = _headers_map(response)
         cookies = _cookie_headers(response)
-        # The body is needed by the body-disclosure rule (HDR012); capture it
-        # here so a failed request leaves it as the empty string.
         body = _body_text(response)
     except httpx.TimeoutException as exc:
         errors.append(f"request timed out after {timeout}s: {exc.__class__.__name__}")
@@ -651,9 +689,6 @@ def _analyze(
         errors=tuple(errors),
     )
 
-# --------------------------------------------------------------------------
-# Unified URL check: XSS surface, SQL injection surface, headers & cookies
-# --------------------------------------------------------------------------
 
 CATEGORY_XSS: str = "xss"
 CATEGORY_SQLI: str = "sql injection"
@@ -662,7 +697,6 @@ CATEGORY_CORS: str = "cors & info leak"
 CATEGORY_SSRF: str = "ssrf & redirects"
 CATEGORY_STACK: str = "stack & shells"
 
-# Query parameter names that steer the next hop (redirect target or fetch URL).
 REDIRECT_PARAMETER_TOKENS: tuple[str, ...] = (
     "url",
     "redirect",
@@ -686,7 +720,6 @@ REDIRECT_PARAMETER_TOKENS: tuple[str, ...] = (
     "src",
 )
 
-# Body markers that should never be served to a visitor.
 SENSITIVE_BODY_MARKERS: tuple[str, ...] = (
     "index of /",
     "directory listing for",
@@ -709,23 +742,15 @@ CATEGORY_ORDER: tuple[str, ...] = (
     CATEGORY_STACK,
 )
 
-# Reflected markers used to detect whether a parameter is echoed back unescaped.
-# Both are inert and non-executing. ``<sentinelprobe>`` contains the angle brackets
-# needed to tell escaped output from raw markup, so it can confirm reflection
-# without any request unless the operator asks for it; ``sentinel_canary_*`` is
-# pure alphanumeric and is only used by the explicit ``--probe`` mode.
 REFLECTION_PROBE: str = "<sentinelprobe>"
 CANARY_PREFIX: str = "sentinel_canary_"
 XSS_REFLECTION_WINDOW: int = 400
 BODY_LIMIT: int = 2_000_000
 
-# Hard ceilings for multi-page inspection. These bound the total work a single
-# audit can perform against an operator-supplied host.
 MAX_PAGES: int = 25
 MAX_DISCOVERED_LINKS: int = 100
 MAX_SURFACE_FINDINGS: int = 25
 
-# Form field names that commonly carry an anti-CSRF token.
 CSRF_FIELD_TOKENS: tuple[str, ...] = (
     "csrf",
     "token",
@@ -735,7 +760,6 @@ CSRF_FIELD_TOKENS: tuple[str, ...] = (
     "__requestverificationtoken",
 )
 
-# Elements whose src/href load a subresource from another origin.
 SUBRESOURCE_ATTRS: tuple[tuple[str, str], ...] = (
     ("script", "src"),
     ("link", "href"),
@@ -747,7 +771,6 @@ SUBRESOURCE_ATTRS: tuple[tuple[str, str], ...] = (
     ("form", "action"),
 )
 
-# Database error signatures that indicate error-based information leakage.
 SQL_ERROR_SIGNATURES: tuple[str, ...] = (
     "sql syntax",
     "you have an error in your sql",
@@ -771,8 +794,6 @@ SQL_ERROR_SIGNATURES: tuple[str, ...] = (
     "jdbc",
 )
 
-# Headers that advertise internal database state. The generic ``x-debug-database``
-# entry is listed under disclosure checks, not as a SQL injection indicator.
 DB_DEBUG_HEADERS: frozenset[str] = frozenset(
     {
         "x-debug-database",
@@ -786,7 +807,6 @@ DB_DEBUG_HEADERS: frozenset[str] = frozenset(
     }
 )
 
-# Headers that specifically reveal query construction or SQL errors.
 QUERY_DEBUG_HEADERS: frozenset[str] = frozenset(
     {
         "x-debug-sql-mode",
@@ -797,7 +817,6 @@ QUERY_DEBUG_HEADERS: frozenset[str] = frozenset(
     }
 )
 
-# Debug traceback signatures disclosed in the response body (HDR012).
 DEBUG_BODY_SIGNATURES: tuple[str, ...] = (
     "traceback (most recent call last)",
     "werkzeug debugger",
@@ -812,7 +831,6 @@ DEBUG_BODY_SIGNATURES: tuple[str, ...] = (
     "stack trace:",
 )
 
-# Inline script markers that a strict CSP would otherwise neutralise.
 INLINE_SCRIPT_MARKERS: tuple[str, ...] = (
     "<script>",
     "<script ",
@@ -1025,7 +1043,7 @@ def _body_text(response: httpx.Response) -> str:
         return ""
     try:
         text = response.text
-    except Exception:  # noqa: BLE001 - decoding must never break the audit
+    except Exception:
         return ""
     return text[:BODY_LIMIT]
 
@@ -1123,8 +1141,6 @@ def _check_xss_surface(
         weak_reasons.append("missing X-Content-Type-Options")
         weak_rules.append("HDR003")
 
-    # Inline script markup with no usable script-src is a hardening signal, not
-    # proof of injection: the markup is served by the site, not by the attacker.
     if not reflection_raw and "script-src" not in lowered_csp:
         lowered_body = body.lower()
         if any(marker in lowered_body for marker in INLINE_SCRIPT_MARKERS):
@@ -1153,18 +1169,12 @@ def _check_sqli_surface(headers: dict[str, str], body: str) -> CategoryResult:
     reasons: list[str] = []
     rule_ids: list[str] = []
 
-    # Only query-specific debug headers count here. A generic database banner
-    # (e.g. x-debug-database) is reported under headers & cookies instead, so a
-    # headers demo is not mislabelled as a SQL injection surface.
     debug_headers = sorted(
         name
         for name in headers
         if name in QUERY_DEBUG_HEADERS or name.startswith("x-debug-sql")
     )
 
-    # A live SQL error in the body is direct evidence that query text is reaching
-    # the engine and failing, so it confirms the category. Debug headers alone
-    # are verbose-output leakage: real, but reported as hardening.
     lowered = body.lower()
     hits = [signature for signature in SQL_ERROR_SIGNATURES if signature in lowered]
     if hits:
@@ -1205,8 +1215,6 @@ def _check_cors_surface(headers: dict[str, str], body: str) -> CategoryResult:
             confirmed_reasons.append("wildcard CORS with credentials")
             confirmed_rules.append("HDR011")
         elif origin == "*":
-            # A wildcard origin without credentials exposes only public data, so
-            # it is a hardening gap rather than a confirmed data-exposure bug.
             weak_reasons.append("wildcard CORS origin")
             weak_rules.append("HDR011")
         elif allows_credentials and _is_static_origin(origin):
@@ -1265,7 +1273,6 @@ def _check_header_surface(headers: dict[str, str], cookies: list[str]) -> Catego
             weak_reasons.append(f"missing {label}")
             weak_rules.append(rule_id)
 
-    # Frame protection may instead be satisfied by CSP frame-ancestors.
     if "x-frame-options" not in headers:
         if "frame-ancestors" in headers.get("content-security-policy", "").lower():
             weak_reasons.remove("missing X-Frame-Options")
@@ -1311,8 +1318,6 @@ def _check_header_surface(headers: dict[str, str], cookies: list[str]) -> Catego
         confirmed_reasons.append(f"debug disclosure ({', '.join(debug_banner)})")
         confirmed_rules.append("HDR007")
 
-    # Insecure cookie flags and debug headers are directly observable weaknesses
-    # in the delivered response; missing headers and version banners are gaps.
     if confirmed_reasons:
         return CategoryResult(
             name=CATEGORY_HEADERS,
@@ -1328,11 +1333,6 @@ def _check_header_surface(headers: dict[str, str], cookies: list[str]) -> Catego
             rule_ids=tuple(dict.fromkeys(weak_rules)),
         )
     return CategoryResult(name=CATEGORY_HEADERS, verdict=Verdict.SAFE)
-
-
-# --------------------------------------------------------------------------
-# HTML surface inspection: same-origin link discovery and markup checks
-# --------------------------------------------------------------------------
 
 
 class SurfaceParser(HTMLParser):
@@ -1417,8 +1417,6 @@ class SurfaceParser(HTMLParser):
         if self._in_script and data:
             self.inline_scripts.append(data)
 
-    # ``HTMLParser`` dispatches to these exact names; the definitions stay
-    # underscore-prefixed to match the project-wide convention.
     handle_starttag = _starttag
     handle_endtag = _endtag
     handle_data = _handle_data
@@ -1445,7 +1443,7 @@ def _parse_html(body: str) -> SurfaceParser:
     try:
         parser.feed(body)
         parser.close()
-    except Exception:  # noqa: BLE001 - malformed markup must never break a scan
+    except Exception:
         pass
     return parser
 
@@ -1466,7 +1464,6 @@ def _resolve_link(href: str, base: str) -> str | None:
         return None
     if not _is_same_origin(absolute, base):
         return None
-    # Drop fragments so the same page is not requested twice.
     return parsed._replace(fragment="").geturl()
 
 
@@ -1697,26 +1694,15 @@ def _inspect_html_surface(
 
     redirects = _redirect_parameters(parser.links, parser.forms, base)
 
-    # Subdomain takeover indicators (CLD002)
-    takeover_domains = (
-        "herokuapp.com",
-        "github.io",
-        "azurewebsites.net",
-        "s3.amazonaws.com",
-        "pantheonsite.io",
-        "firebaseapp.com",
-        "surge.sh",
-    )
     takeovers: list[str] = []
     all_refs = [res.get("url", "") for res in parser.subresources] + parser.links
     for ref in all_refs:
         lowered_ref = ref.lower().strip()
-        for dom in takeover_domains:
+        for dom in _TAKEOVER_DOMAINS:
             if f".{dom}" in lowered_ref:
                 takeovers.append(f"external resource points to takeover-prone cloud host: {dom}")
                 break
 
-    # Reverse tabnabbing (CLT002)
     tabnabbing: list[str] = []
     for a in parser.anchors:
         href = a.get("href", "").strip()
@@ -1731,48 +1717,33 @@ def _inspect_html_surface(
                     display = href if len(href) <= 45 else href[:42] + "..."
                     tabnabbing.append(f"target=_blank external link missing rel=noopener: {display}")
 
-    # Client storage tokens in inline scripts (CLT001)
     storage_leaks: list[str] = []
-    storage_tokens = ("token", "jwt", "auth", "secret", "password", "session")
     for script_text in parser.inline_scripts:
         lowered_script = script_text.lower()
         if "localstorage.setitem" in lowered_script or "sessionstorage.setitem" in lowered_script:
-            for token in storage_tokens:
+            for token in _STORAGE_TOKENS:
                 if token in lowered_script:
                     storage_leaks.append(f"inline script stores '{token}' in client storage")
                     break
 
-    # Hidden field parameter tampering (TMP002)
     hidden_tampering: list[str] = []
-    sensitive_hidden = ("role", "is_admin", "admin", "price", "amount", "discount", "user_id")
     for form in parser.forms:
         fields = form.get("fields")
         if isinstance(fields, list):
             for field in fields:
                 if isinstance(field, dict) and str(field.get("type", "")).lower() == "hidden":
                     fname = str(field.get("name", "")).lower()
-                    if any(p in fname for p in sensitive_hidden):
+                    if any(p in fname for p in _SENSITIVE_HIDDEN_PARAMS):
                         hidden_tampering.append(
                             f"sensitive parameter '{fname}' in hidden form field without tamper protection (TMP002)"
                         )
 
-    # DOM XSS sinks and postMessage listener checks (DOM001, DOM002)
     dom_xss: list[str] = []
-    dom_sinks = ("innerhtml", "document.write", "document.writeln", "eval(")
-    dom_sources = (
-        "location.search",
-        "location.hash",
-        "location.href",
-        "window.location",
-        "document.location",
-        "document.url",
-        "document.referrer",
-    )
     postmessage_leaks: list[str] = []
     for script_text in parser.inline_scripts:
         lowered_script = script_text.lower()
-        if any(sink in lowered_script for sink in dom_sinks) and any(
-            src in lowered_script for src in dom_sources
+        if any(sink in lowered_script for sink in _DOM_SINKS) and any(
+            src in lowered_script for src in _DOM_SOURCES
         ):
             dom_xss.append(
                 "client-side DOM XSS sink in inline script: innerHTML/document.write with location source (DOM001)"
@@ -1783,24 +1754,11 @@ def _inspect_html_surface(
                     "unvalidated postMessage message event listener in inline script (DOM002)"
                 )
 
-    # Sensitive path references and unvalidated file upload inputs (STK001)
     sensitive_paths: list[str] = []
-    sensitive_probes = (
-        "/.git/",
-        "/.env",
-        "/phpinfo.php",
-        "/server-status",
-        "/setup/",
-        "remote_agent.php",
-        "/public/plugins/",
-        "/CFIDE/administrator/",
-        "/minio/bootstrap/v1/verify",
-        "GetPhpInfo.php",
-    )
     all_links_and_sources = parser.links + [r.get("url", "") for r in parser.subresources]
     for target_ref in all_links_and_sources:
         lowered_target = target_ref.lower()
-        for probe in sensitive_probes:
+        for probe in _SENSITIVE_PROBES:
             if probe.lower() in lowered_target:
                 sensitive_paths.append(f"sensitive path reference exposed in page: {probe}")
                 break
@@ -1893,9 +1851,6 @@ def _canary_reflection(
         names = _query_parameters(candidate)
         if not names:
             continue
-        # Send both markers across the discovered parameter names. The markup
-        # probe goes on the first parameter so a single-parameter page is still
-        # exercised; the alphanumeric canary covers the remainder.
         pairs = []
         for index, name in enumerate(names):
             marker = REFLECTION_PROBE if index == 0 else canary
@@ -1952,7 +1907,6 @@ def _check_stack_surface(
         if hdr in headers:
             reasons.append(f"disclosed backend banner via {hdr}: {headers[hdr]}")
 
-    # Correlate with curated CVE knowledge base
     from src.analyzers.cve import _match_stack_cves
 
     cve_matches = _match_stack_cves(headers, body, discovered_paths)
@@ -2045,7 +1999,6 @@ def _audit_web(
 
     trusted_external = whitelist.get("trusted_external_links", [])
 
-    # Markup inspection of the landing page in every mode.
     page_is_https = urlparse(final_url).scheme.lower() == "https"
     surfaces: list[dict[str, list[str]]] = [_inspect_html_surface(body, final_url, page_is_https, trusted_external)]
     visited: list[str] = [final_url]
@@ -2074,8 +2027,6 @@ def _audit_web(
             page_https = urlparse(str(page.url)).scheme.lower() == "https"
             surfaces.append(_inspect_html_surface(page_body, str(page.url), page_https, trusted_external))
 
-    # Probing is opt-in: without --probe the audit sends exactly one GET per
-    # discovered page and never rewrites query parameters.
     reflection_raw = False
     if probe and body:
         reflection_raw = _canary_reflection(final_url, client, timeout, deep, visited)
@@ -2085,7 +2036,6 @@ def _audit_web(
     header_reasons = _surface_reasons(surfaces, CATEGORY_HEADERS)
     stack_surface_reasons = _surface_reasons(surfaces, CATEGORY_STACK)
 
-    # Check for login pages missing rate-limiting headers (TMP001)
     has_password_form = any(
         "password input" in reason
         for s in surfaces

@@ -41,23 +41,12 @@ HTTP_MODULES: frozenset[str] = frozenset(
     {"requests", "httpx", "urllib", "urllib3", "aiohttp"}
 )
 
-# A quantified group that itself contains a quantifier, e.g. (a+)+ or (.*)*
 _NESTED_QUANTIFIER = re.compile(
-    r"""
-    \(              # open group
-    [^()]*          # group body with no nested parens
-    (?:[+*]|\{\d+,\d*\})   # an inner quantifier
-    [^()]*          # rest of the body
-    \)              # close group
-    (?:[+*]|\{\d+,\d*\})   # an outer quantifier over that group
-    """,
-    re.VERBOSE,
+    r"\([^()]*(?:[+*]|\{\d+,\d*\})[^()]*\)(?:[+*]|\{\d+,\d*\})"
 )
 
-# Overlapping alternation inside a quantified group: (a|a)+ / (a|ab)+
 _OVERLAPPING_ALTERNATION = re.compile(r"\([^()]*\|[^()]*\)(?:[+*]|\{\d+,\d*\})")
 
-# A very large explicit repetition count is a separate exhaustion risk.
 _LARGE_REPEAT = re.compile(r"\{\d{4,}(?:,\d*)?\}")
 
 
@@ -89,14 +78,10 @@ def _has_nested_quantifier(pattern: str) -> bool:
     if not pattern:
         return False
     body = pattern
-    # Anchors and escapes are irrelevant; strip escaped characters so \(...\)
-    # literals are not mistaken for groups.
     body = re.sub(r"\\.", "", body)
     if _NESTED_QUANTIFIER.search(body):
         return True
     if _OVERLAPPING_ALTERNATION.search(body) and "|" in body:
-        # Only flag overlapping alternation when the branches can match the
-        # same prefix, which we approximate by comparing their first character.
         match = _OVERLAPPING_ALTERNATION.search(body)
         if match:
             inner = match.group(0)
@@ -125,7 +110,6 @@ def _is_http_sink(node: ast.Call, sinks: frozenset[str], modules: frozenset[str]
         return True
     if _matches_module(dotted, modules):
         return True
-    # requests.Session().get / httpx.Client().get style receivers.
     if isinstance(node.func, ast.Attribute):
         receiver = _dotted_name(node.func.value).lower()
         if any(token in receiver for token in modules):
@@ -136,7 +120,7 @@ def _is_http_sink(node: ast.Call, sinks: frozenset[str], modules: frozenset[str]
 class RedosVisitor(Visitor):
     """AST visitor implementing the ReDoS and timeout rules."""
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect every call that may compile a regex or make a request."""
         self._inspect_regex(node)
         self._inspect_request(node)

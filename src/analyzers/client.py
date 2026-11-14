@@ -122,7 +122,7 @@ def _evaluate_client_storage_surface(script_contents: list[str]) -> list[str]:
 class ClientVisitor(Visitor):
     """AST visitor for client-side storage leaks and reverse tabnabbing."""
 
-    def visit_Constant(self, node: ast.Constant) -> None:  # noqa: N802
+    def visit_Constant(self, node: ast.Constant) -> None:
         """Inspect string constants for client-side storage and unpinned blank links."""
         if isinstance(node.value, str):
             self._inspect_string(node, node.value)

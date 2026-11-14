@@ -91,7 +91,6 @@ def _evaluate_tamper_surface(
     reasons: list[str] = []
     lowered_headers = {k.lower(): v for k, v in headers.items()}
 
-    # Check for missing rate limits when login/password inputs exist (TMP001)
     if password_inputs:
         has_rate_header = any(hdr in lowered_headers for hdr in _RATE_LIMIT_HEADERS)
         if not has_rate_header:
@@ -99,7 +98,6 @@ def _evaluate_tamper_surface(
                 "login/password form served without rate-limit headers (X-RateLimit-Limit, Retry-After)"
             )
 
-    # Check for sensitive parameters exposed in hidden fields (TMP002 / TMP005)
     for form in forms:
         fields = form.get("fields")
         if not isinstance(fields, list):
@@ -120,17 +118,17 @@ def _evaluate_tamper_surface(
 class TamperVisitor(Visitor):
     """AST visitor for rate-limiting, parameter tampering, and verb override."""
 
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # noqa: N802
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         """Inspect synchronous route handlers."""
         self._inspect_handler(node)
         self.generic_visit(node)
 
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:  # noqa: N802
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         """Inspect asynchronous route handlers."""
         self._inspect_handler(node)
         self.generic_visit(node)
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect calls reading request data or headers."""
         self._inspect_request_call(node)
         self.generic_visit(node)
@@ -155,10 +153,7 @@ class TamperVisitor(Visitor):
         if not is_route:
             return
 
-        # Check TMP001: Missing rate limits on auth routes
         self._check_auth_rate_limit(node, route_path)
-
-        # Check TMP003: Verb tampering (combining GET and mutating verbs on same handler)
         self._check_verb_tampering(node, route_path, methods)
 
     def _check_auth_rate_limit(
@@ -242,7 +237,6 @@ class TamperVisitor(Visitor):
         if name != "get":
             return
 
-        # Ensure receiver is request-related (form, json, cookies, values, args)
         if isinstance(node.func, ast.Attribute):
             rec = _dotted_name(node.func.value).lower()
             if not any(token in rec for token in ("form", "json", "cookies", "values")):

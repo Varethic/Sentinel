@@ -44,7 +44,6 @@ MESSAGES: dict[str, str] = {
     ),
 }
 
-# Builtins and constructors that resolve to a filesystem path.
 PATH_CONSTRUCTORS: frozenset[str] = frozenset(
     {"open", "path", "purepath", "posixpath", "windowspath", "open_file", "fileio"}
 )
@@ -63,7 +62,6 @@ RESPONSE_SINKS: frozenset[str] = frozenset(
     }
 )
 
-# Calls that neutralise traversal when applied to the path expression.
 DEFAULT_GUARDS: frozenset[str] = frozenset(
     {
         "resolve",
@@ -122,7 +120,6 @@ def _guarded_upward(root: ast.AST, node: ast.AST, guards: frozenset[str]) -> boo
     current: ast.AST = node
     for parent in _parents_of(root, node):
         if isinstance(parent, ast.Call) and parent.func is not current:
-            # A call whose *argument* is our node does not guard it.
             if node in parent.args or any(kw.value is node for kw in parent.keywords):
                 continue
         if isinstance(parent, ast.Call) and parent.func is current:
@@ -133,8 +130,6 @@ def _guarded_upward(root: ast.AST, node: ast.AST, guards: frozenset[str]) -> boo
                 return True
             current = parent
             continue
-        # Stop climbing once the value is consumed by an assignment, return,
-        # or a different call that takes it as an argument.
         if isinstance(parent, (ast.Assign, ast.Return, ast.AugAssign, ast.keyword)):
             break
         if isinstance(parent, ast.BinOp):
@@ -154,11 +149,9 @@ def _is_guarded(node: ast.AST, guards: frozenset[str]) -> bool:
     for child in _iter_subexpressions(node):
         if isinstance(child, ast.Call) and _call_name(child) in guards:
             return True
-        # os.path.realpath / werkzeug.utils.secure_filename style dotted calls.
         if isinstance(child, ast.Attribute):
             if child.attr.lower() in guards:
                 return True
-        # A `.resolve()` / `.relative_to(...)` chain is caught above via Call.
     return False
 
 
@@ -197,7 +190,7 @@ def _classify(node: ast.AST) -> DynamicKind:
 class TraversalVisitor(Visitor):
     """AST visitor implementing the path traversal rules."""
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect every call that matches a configured filesystem sink."""
         self._inspect(node)
         self.generic_visit(node)

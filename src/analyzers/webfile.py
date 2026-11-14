@@ -101,13 +101,11 @@ def _check_dom_xss(target: SourceFile, rule: Rule) -> list[Finding]:
         if "dangerouslysetinnerhtml" in lowered:
             matched_desc = "Unsafe React sink 'dangerouslySetInnerHTML' can lead to DOM XSS"
         elif "innerhtml" in lowered and "=" in line:
-            # Check innerHTML =
             idx = lowered.find("innerhtml")
             after = line[idx + 9 :].lstrip()
             if after.startswith("="):
                 matched_desc = "Unsafe DOM sink 'innerHTML =' assignment can lead to DOM XSS"
         elif "outerhtml" in lowered and "=" in line:
-            # Check outerHTML =
             idx = lowered.find("outerhtml")
             after = line[idx + 9 :].lstrip()
             if after.startswith("="):
@@ -288,7 +286,6 @@ def _check_php_rce(target: SourceFile, rule: Rule) -> list[Finding]:
 
         for sink in _PHP_SINKS:
             if f"{sink}(" in compact.lower():
-                # Check for superglobal
                 if any(sg in lowered for sg in _PHP_SUPERGLOBALS):
                     findings.append(
                         Finding(
@@ -308,7 +305,6 @@ def _check_php_rce(target: SourceFile, rule: Rule) -> list[Finding]:
                         )
                     )
                     break
-                # Check for variable passed to sink
                 if f"{sink}($" in compact.lower():
                     findings.append(
                         Finding(
@@ -410,7 +406,6 @@ def _check_dockerfile_images(target: SourceFile, rule: Rule) -> list[Finding]:
         stripped = line.strip()
         lowered = stripped.lower()
 
-        # Check remote ADD
         if lowered.startswith("add ") and ("http://" in lowered or "https://" in lowered):
             findings.append(
                 Finding(
@@ -430,7 +425,6 @@ def _check_dockerfile_images(target: SourceFile, rule: Rule) -> list[Finding]:
                 )
             )
 
-        # Check FROM base image
         if lowered.startswith("from "):
             tokens = stripped.split()
             if len(tokens) >= 2:

@@ -105,12 +105,12 @@ def _evaluate_cache_surface(headers: dict[str, str]) -> list[str]:
 class HostVisitor(Visitor):
     """AST visitor for Host header injection detection."""
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect calls to redirect/link generators with Host expressions."""
         self._inspect_redirect_call(node)
         self.generic_visit(node)
 
-    def visit_JoinedStr(self, node: ast.JoinedStr) -> None:  # noqa: N802 - ast API name
+    def visit_JoinedStr(self, node: ast.JoinedStr) -> None:
         """Inspect f-strings interpolating Host headers into URLs."""
         self._inspect_fstring(node)
         self.generic_visit(node)

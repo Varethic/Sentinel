@@ -52,7 +52,6 @@ STANDARD_XML_MODULES: frozenset[str] = frozenset(
 
 LXML_MODULES: frozenset[str] = frozenset({"lxml", "lxml.etree", "etree"})
 
-# Default unsafe keyword settings for lxml.etree.XMLParser.
 UNSAFE_DEFAULTS: dict[str, bool] = {
     "resolve_entities": True,
     "no_network": False,
@@ -79,7 +78,7 @@ class XxeVisitor(Visitor):
         super().__init__(target, rules)
         self._aliases = _import_aliases(target.tree)
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect every call that may construct or use an XML parser."""
         self._inspect(node)
         self.generic_visit(node)
@@ -110,7 +109,6 @@ class XxeVisitor(Visitor):
         if name not in sinks:
             return False
         argument = _first_argument(node)
-        # A constant document authored in source is not external input.
         if argument is not None and _is_literal(argument):
             return False
         self._add(

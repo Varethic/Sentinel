@@ -103,12 +103,12 @@ def _function_references_auth(node: ast.FunctionDef | ast.AsyncFunctionDef) -> b
 class IdorVisitor(Visitor):
     """AST visitor detecting IDOR and unauthenticated admin endpoints."""
 
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # noqa: N802
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         """Inspect synchronous handler definitions."""
         self._inspect_function(node)
         self.generic_visit(node)
 
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:  # noqa: N802
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         """Inspect asynchronous handler definitions."""
         self._inspect_function(node)
         self.generic_visit(node)
@@ -175,7 +175,6 @@ class IdorVisitor(Visitor):
         if _function_references_auth(node):
             return
 
-        # Look for ORM calls inside the function
         for sub in ast.walk(node):
             if not isinstance(sub, ast.Call):
                 continue
@@ -183,7 +182,6 @@ class IdorVisitor(Visitor):
             if method_name not in _ORM_LOOKUP_METHODS:
                 continue
 
-            # Check if one of the id parameters is passed to this ORM call
             for arg in _call_arguments(sub):
                 if isinstance(arg, ast.Name) and arg.id.lower() in param_names:
                     self._add(

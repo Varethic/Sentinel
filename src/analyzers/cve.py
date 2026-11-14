@@ -84,7 +84,6 @@ def _match_manifest_dependencies(
             continue
         pkg_lower = str(pkg).lower()
         if pkg_lower in lowered_content:
-            # Check for version indicators
             findings.append(
                 Finding(
                     rule_id=rule.rule_id,
@@ -173,7 +172,6 @@ def _extract_product_versions(header_name: str, header_val: str) -> list[tuple[s
     if not val:
         return []
 
-    # Dedicated version headers where product is implied by header name
     if h_lower in ("x-jenkins", "x-aspnet-version", "x-runtime"):
         first_char = val[0] if val else ""
         if first_char.isdigit():
@@ -287,7 +285,6 @@ def _match_stack_cves(
     paths = [p.lower() for p in (discovered_paths or [])]
     lowered_headers = {k.lower(): v for k, v in headers.items()}
 
-    # Extract explicit (product, version) pairs from headers
     detected_versions: list[tuple[str, str, str]] = []
     for hname, hval in headers.items():
         pairs = _extract_product_versions(hname, hval)
@@ -300,7 +297,6 @@ def _match_stack_cves(
             continue
         target_pkg, op, target_ver = c_info
 
-        # Candidate aliases for product matching
         aliases = {target_pkg, target_pkg.replace("-", "").replace(".", "")}
         if target_pkg == "next":
             aliases.update({"next.js", "nextjs"})
@@ -324,7 +320,6 @@ def _match_stack_cves(
                 else:
                     aliases.add(h_str)
 
-        # 1. Check for explicit vulnerable version in headers
         vulnerable_match: tuple[Rule, str, bool] | None = None
         for hname, prod, ver in detected_versions:
             if _match_product(prod, aliases):
@@ -340,7 +335,6 @@ def _match_stack_cves(
             vulnerable_matches.append(vulnerable_match)
             continue
 
-        # 2. Check paths (discovered links and body references)
         rule_paths = rule.patterns._get("paths", [])
         advisory_match: tuple[Rule, str, tuple[int, ...]] | None = None
         has_version = any(_match_product(p, aliases) for _, p, _ in detected_versions)
@@ -350,7 +344,6 @@ def _match_stack_cves(
                 if probe in ("/", ""):
                     continue
 
-                # Check discovered links (confirmed accessible)
                 if any(probe in p for p in paths):
                     if _is_sensitive_endpoint(probe):
                         vulnerable_match = (
@@ -364,7 +357,6 @@ def _match_stack_cves(
                             advisory = _format_surface_advisory(rule, c_info)
                             advisory_match = (rule, advisory, _parse_version(target_ver))
 
-                # Check body references (markup)
                 if not has_version and probe in lowered_body and len(probe) > 6:
                     if not advisory_match:
                         advisory = _format_surface_advisory(rule, c_info)
@@ -374,7 +366,6 @@ def _match_stack_cves(
             vulnerable_matches.append(vulnerable_match)
             continue
 
-        # 3. Check for unversioned framework header disclosure (e.g. X-Powered-By: Next.js)
         if not advisory_match and not has_version:
             if target_pkg in ("next", "express") or any(k in str(rule_hdrs).lower() for k in ("next", "express")):
                 for hname in ("x-powered-by", "server"):
@@ -390,7 +381,6 @@ def _match_stack_cves(
             if fw not in advisory_matches or advisory_match[2] > advisory_matches[fw][2]:
                 advisory_matches[fw] = advisory_match
 
-    # Combine: confirmed vulnerable matches first, then deduplicated advisories
     combined: list[tuple[Rule, str, bool]] = list(vulnerable_matches)
     for rule, msg, _ in advisory_matches.values():
         combined.append((rule, msg, False))

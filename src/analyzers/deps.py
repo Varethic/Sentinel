@@ -53,7 +53,6 @@ DEFAULT_PROTOCOLS: tuple[str, ...] = (
     "PROTOCOL_SSLv23",
 )
 
-# Reported once per file so a module imported twice is not double counted.
 _SEVERITY_RANK: dict[str, int] = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
 
 
@@ -77,18 +76,18 @@ class DepsVisitor(Visitor):
         self._aliases = _import_aliases(target.tree)
         self._reported: set[str] = set()
 
-    def visit_Import(self, node: ast.Import) -> None:  # noqa: N802 - ast API name
+    def visit_Import(self, node: ast.Import) -> None:
         """Flag plain imports of denied modules."""
         self._inspect_import(node, [alias.name for alias in node.names])
         self.generic_visit(node)
 
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:  # noqa: N802
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         """Flag from-imports of denied modules."""
         if node.module:
             self._inspect_import(node, [node.module])
         self.generic_visit(node)
 
-    def visit_Attribute(self, node: ast.Attribute) -> None:  # noqa: N802
+    def visit_Attribute(self, node: ast.Attribute) -> None:
         """Flag attribute access that pins a withdrawn TLS protocol."""
         self._inspect_protocol(node)
         self.generic_visit(node)
@@ -126,8 +125,6 @@ class DepsVisitor(Visitor):
             return
         owner = _dotted_name(node.value).lower()
         resolved = _resolve_dotted(owner, self._aliases)
-        # Only report when the constant belongs to ssl, so an unrelated
-        # attribute that shares the name is not flagged.
         if owner != "ssl" and resolved != "ssl" and not resolved.startswith("ssl."):
             return
         key = f"protocol:{node.attr}"

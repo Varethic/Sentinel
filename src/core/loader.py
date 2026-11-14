@@ -197,9 +197,7 @@ def _read_document(path: Path) -> dict[str, Any]:
 def _load_ruleset(path: Path) -> RuleSet:
     """Load, decode and validate a single rule document into a RuleSet."""
     payload = _read_document(path)
-
-    # Drop documentation-only keys that carry no runtime meaning.
-    payload = {key: value for key, value in payload.items() if key != "$schema"}
+    payload.pop("$schema", None)
 
     try:
         return RuleSet.model_validate(payload)

@@ -754,7 +754,6 @@ def _display_path(path: Path, root: Path) -> str:
     resolved = path.resolve()
 
     if root.is_file():
-        # Single-file scan: prefer an operator-friendly relative path.
         for base in (Path.cwd().resolve(), root.parent.resolve()):
             try:
                 return str(resolved.relative_to(base))

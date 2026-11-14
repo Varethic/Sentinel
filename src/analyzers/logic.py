@@ -79,7 +79,6 @@ class LogicVisitor(Visitor):
     def visit_Assign(self, node: ast.Assign) -> None:
         """Inspect assignment mutations on balance/inventory and unvalidated inputs."""
         lineno = getattr(node, "lineno", 0)
-        # Check balance read-modify-write: obj.balance = obj.balance - amount
         if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, (ast.Sub, ast.Add)):
             for target in node.targets:
                 tname = self._target_name(target)
@@ -94,7 +93,6 @@ class LogicVisitor(Visitor):
                                 f"Race condition in balance/inventory update '{tname}' without concurrency lock or select_for_update",
                             )
 
-        # Check input reading: amount = request.json.get("amount") without validation
         if isinstance(node.value, ast.Call):
             cname = _call_name(node.value)
             dname = _dotted_name(node.value.func).lower()

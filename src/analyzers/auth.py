@@ -45,7 +45,6 @@ JWT_MODULES: frozenset[str] = frozenset(
     {"jwt", "jose", "python_jose", "jwcrypto", "authlib"}
 )
 
-# ssl helpers that build an unverified context.
 UNVERIFIED_HELPERS: frozenset[str] = frozenset(
     {"_create_unverified_context", "create_default_context"}
 )
@@ -108,17 +107,17 @@ def _dict_has_false_key(node: ast.AST, tokens: frozenset[str]) -> str:
 class AuthVisitor(Visitor):
     """AST visitor implementing the authentication and TLS rules."""
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect every call that may weaken TLS, JWT or debug settings."""
         self._inspect_call(node)
         self.generic_visit(node)
 
-    def visit_Assign(self, node: ast.Assign) -> None:  # noqa: N802 - ast API name
+    def visit_Assign(self, node: ast.Assign) -> None:
         """Inspect assignments for a literal debug flag set to True."""
         self._inspect_assign(node)
         self.generic_visit(node)
 
-    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:  # noqa: N802 - ast API name
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         """Inspect annotated assignments for the same debug flag."""
         rule = self._rule("AUTH003")
         if rule is not None and isinstance(node.value, ast.Constant):
@@ -173,7 +172,6 @@ class AuthVisitor(Visitor):
         if rule is None:
             return False
 
-        # ssl._create_unverified_context() builds an unverified context outright.
         if name in UNVERIFIED_HELPERS:
             dotted = _dotted_name(node.func).lower()
             if "ssl" in dotted:
@@ -191,7 +189,6 @@ class AuthVisitor(Visitor):
         if not is_http:
             return False
 
-        # requests.get(url, verify=False) / httpx.get(url, verify=False)
         for keyword in node.keywords:
             if not keyword.arg:
                 continue
@@ -205,7 +202,6 @@ class AuthVisitor(Visitor):
                     MESSAGES["AUTH001"].format(sink=name, setting=f"{keyword.arg}=False"),
                 )
                 return True
-        # requests.request(..., verify=False) may also arrive inside a dict.
         for argument in node.args:
             if isinstance(argument, ast.Dict) and _literal_false_dict(argument):
                 self._add(
@@ -231,7 +227,6 @@ class AuthVisitor(Visitor):
             token.lower() for token in rule.patterns._strings("unsafe_options")
         )
 
-        # options={"verify_signature": False}
         for keyword in node.keywords:
             if not keyword.arg:
                 continue
@@ -254,7 +249,6 @@ class AuthVisitor(Visitor):
                         MESSAGES["AUTH002"].format(sink=name),
                     )
                     return True
-        # jwt.decode(token, options={...}, verify=False) may pass a bare dict.
         for argument in node.args:
             if isinstance(argument, ast.Dict) and _dict_has_false_key(argument, tokens):
                 self._add(

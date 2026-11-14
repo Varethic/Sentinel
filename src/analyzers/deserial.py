@@ -109,7 +109,7 @@ def _is_literal_argument(node: ast.Call) -> bool:
 class DeserialVisitor(Visitor):
     """AST visitor implementing the deserialization rules."""
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect every call that may reconstruct objects from data."""
         self._inspect(node)
         self.generic_visit(node)
@@ -138,8 +138,6 @@ class DeserialVisitor(Visitor):
             return False
         if _is_literal_argument(node):
             return False
-        # shelve.open() takes a filename, not a byte stream, but it is still
-        # a pickle-backed store and is reported with its own label.
         label = _FORMAT_LABELS.get(matched.split(".")[0], matched)
         self._add(
             rule.rule_id,
@@ -155,7 +153,6 @@ class DeserialVisitor(Visitor):
         sinks = {sink.lower() for sink in rule.patterns._strings("sinks")}
         if name not in sinks:
             return False
-        # safe_load and safe_load_all are already safe by definition.
         if name.startswith("safe"):
             return False
         if _has_safe_loader(node):

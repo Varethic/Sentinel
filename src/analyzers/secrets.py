@@ -40,10 +40,8 @@ MESSAGES: dict[str, str] = {
     ),
 }
 
-# Weak digest constructors.
 WEAK_HASH_SINKS: frozenset[str] = frozenset({"md5", "sha1", "md4", "sha"})
 
-# Calls attributed to the random module (module-qualified or imported directly).
 RANDOM_SINKS: frozenset[str] = frozenset(
     {
         "random",
@@ -59,7 +57,6 @@ RANDOM_SINKS: frozenset[str] = frozenset(
     }
 )
 
-# Default placeholder values that are not real secrets.
 DEFAULT_PLACEHOLDERS: frozenset[str] = frozenset(
     {
         "",
@@ -104,7 +101,6 @@ DEFAULT_NAME_TOKENS: tuple[str, ...] = (
 
 DEFAULT_MIN_LENGTH: int = 4
 
-# Assignment targets whose names end in these are metadata, not credentials.
 METADATA_SUFFIXES: tuple[str, ...] = (
     "_env",
     "_var",
@@ -165,7 +161,6 @@ def _target_name(node: ast.AST) -> str:
 def _strip_calls(node: ast.AST) -> ast.AST:
     """Unwrap trivial wrapper calls so the literal underneath is visible."""
     current = node
-    # os.environ.setdefault(...) / str(...) / "x".format(...) wrappers.
     while isinstance(current, ast.Call) and current.args:
         current = current.args[0]
     return current
@@ -206,11 +201,9 @@ def _is_real_literal(value: ast.AST, placeholders: frozenset[str], minimum: int)
         return None
     if stripped.lower() in placeholders:
         return None
-    # Values that are obviously documentation, not credentials.
     if stripped.startswith(("{", "<", "__")) or stripped.endswith("..."):
         return None
     if stripped.isupper() and "_" in stripped and " " not in stripped:
-        # ALL_CAPS_WITH_UNDERSCORES is a constant *name*, not a secret value.
         return None
     if not any(char.isalnum() for char in stripped):
         return None
@@ -240,24 +233,22 @@ def _random_origin(node: ast.Call) -> bool:
 class SecretsVisitor(Visitor):
     """AST visitor implementing the secrets and weak-crypto rules."""
 
-    def visit_Assign(self, node: ast.Assign) -> None:  # noqa: N802 - ast API name
+    def visit_Assign(self, node: ast.Assign) -> None:
         """Inspect simple assignments for hardcoded credentials."""
         self._inspect_assignment(node.targets, node.value, node)
         self.generic_visit(node)
 
-    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:  # noqa: N802 - ast API name
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         """Inspect annotated assignments (``NAME: str = "value"``)."""
         if node.value is not None:
             self._inspect_assignment([node.target], node.value, node)
         self.generic_visit(node)
 
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
+    def visit_Call(self, node: ast.Call) -> None:
         """Inspect weak hash construction and insecure random usage."""
         self._inspect_weak_hash(node)
         self._inspect_random(node)
         self.generic_visit(node)
-
-    # -- SEC001 ---------------------------------------------------------
 
     def _inspect_assignment(
         self,
@@ -285,8 +276,6 @@ class SecretsVisitor(Visitor):
             self._add("SEC001", node, MESSAGES["SEC001"].format(name=name))
             return
 
-    # -- SEC002 ---------------------------------------------------------
-
     def _inspect_weak_hash(self, node: ast.Call) -> None:
         """Report hashlib.md5()/sha1() unless usedforsecurity=False is set."""
         rule = self._rule("SEC002")
@@ -299,8 +288,6 @@ class SecretsVisitor(Visitor):
 
         dotted = _dotted_name(node.func).lower()
         if dotted and not dotted.startswith(("hashlib.", "crypt.", "_md5", "_sha1")):
-            # Only module-qualified weak hashes, or bare imports of the same
-            # name, are reported; an unrelated user method named md5() is not.
             if sink not in WEAK_HASH_SINKS:
                 return
             if "." in dotted and not dotted.startswith(("hashlib", "crypt")):
@@ -316,8 +303,6 @@ class SecretsVisitor(Visitor):
                 return
 
         self._add("SEC002", node, MESSAGES["SEC002"].format(sink=sink))
-
-    # -- SEC003 ---------------------------------------------------------
 
     def _inspect_random(self, node: ast.Call) -> None:
         """Report random-module values that feed a security-sensitive name."""
@@ -358,7 +343,6 @@ class SecretsVisitor(Visitor):
             if isinstance(parent, (ast.Return, ast.keyword)):
                 value = parent.value if isinstance(parent, ast.Return) else parent.value
                 if isinstance(value, ast.Call) and value is node:
-                    # return random.randint(...) - check the enclosing function.
                     for ancestor in self._parents_of(parent):
                         if isinstance(ancestor, (ast.FunctionDef, ast.AsyncFunctionDef)):
                             if _matches_token(ancestor.name, tokens):

@@ -95,7 +95,7 @@ def _evaluate_takeover_surface(urls: list[str]) -> list[str]:
 class CloudVisitor(Visitor):
     """AST visitor for hardcoded public cloud storage buckets."""
 
-    def visit_Constant(self, node: ast.Constant) -> None:  # noqa: N802
+    def visit_Constant(self, node: ast.Constant) -> None:
         """Inspect string constants for hardcoded public cloud bucket URLs."""
         if isinstance(node.value, str):
             self._inspect_string(node, node.value)

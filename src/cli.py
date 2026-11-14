@@ -392,8 +392,6 @@ def _audit_headers(
     ] = True,
 ) -> None:
     """Audit HTTP headers, cookies, markup and redirect surface with passive requests."""
-    # ``--verbose`` selects the unified check even without the hidden ``--web``
-    # marker, so the detailed renderer and the category verdicts agree.
     if web or verbose:
         _run_url_audit(
             url=url,
@@ -550,7 +548,7 @@ def _run_url_audit(
     The compact one-line-per-category summary is the default; ``--verbose`` or
     ``--format json`` expose the detailed tables and full finding list.
     """
-    del fail_on  # any vulnerable category fails the run for the unified check
+    del fail_on
 
     try:
         report = headers_analyzer._audit_web(
@@ -706,7 +704,6 @@ def _route_shorthand(argv: list[str]) -> list[str]:
         return argv
 
     if _is_url(head) or _looks_like_host(head):
-        # Validate that the trailing options belong to the header audit surface.
         index = 1
         while index < len(argv):
             token = argv[index]
@@ -724,19 +721,15 @@ def _route_shorthand(argv: list[str]) -> list[str]:
                 continue
             if token.startswith("-") and token not in {"-h", "--help"}:
                 return argv
-            # Any other positional after the URL is not a valid shorthand form.
             return argv
 
         tail = argv[1:]
         verbose = "--verbose" in tail
         if verbose:
-            # Keep --verbose so the detailed renderer is selected; only the hidden
-            # --web marker is omitted, since --verbose implies the unified check.
             return ["audit-headers", head, *tail]
         forwarded = [token for token in tail if token != "--verbose"]
         return ["audit-headers", "--web", head, *forwarded]
 
-    # Non-URL, non-command positional: route to audit-code <head> [*tail]
     return ["audit-code", head, *argv[1:]]
 
 
