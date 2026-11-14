@@ -774,8 +774,14 @@ SUBRESOURCE_ATTRS: tuple[tuple[str, str], ...] = (
 SQL_ERROR_SIGNATURES: tuple[str, ...] = (
     "sql syntax",
     "you have an error in your sql",
-    "syntax error at or near",
+    "syntax error",
+    "database exception",
+    "operationalerror",
+    "sqlite3.operationalerror",
+    "database query error",
+    "sql error",
     "unclosed quotation mark",
+    "unclosed quote",
     "quoted string not properly terminated",
     "unrecognized token",
     "mysqli",
@@ -1408,6 +1414,21 @@ class SurfaceParser(HTMLParser):
     def _endtag(self, tag: str) -> None:
         """Close the current form when its end tag is reached."""
         if tag.lower() == "form":
+            if self._form and str(self._form.get("method", "get")).lower() == "get":
+                action = str(self._form.get("action") or "").strip()
+                fields = self._form.get("fields")
+                if isinstance(fields, list) and fields:
+                    params = []
+                    for f in fields:
+                        if isinstance(f, dict):
+                            fname = str(f.get("name") or "").strip()
+                            ftype = str(f.get("type") or "text").lower()
+                            if fname and ftype not in ("submit", "button", "reset", "image"):
+                                params.append(f"{fname}=")
+                    if params:
+                        sep = "&" if "?" in action else "?"
+                        form_url = f"{action}{sep}{'&'.join(params)}"
+                        self.links.append(form_url)
             self._form = None
         if tag.lower() == "script":
             self._in_script = False
@@ -1767,8 +1788,20 @@ def _inspect_html_surface(
     if parser.file_inputs:
         file_uploads.append("file upload input present without MIME accept filter: " + ", ".join(parser.file_inputs))
 
+    sqli_surface: list[str] = []
+    lowered_doc = body.lower()
+    for sig in SQL_ERROR_SIGNATURES:
+        if sig in lowered_doc:
+            sqli_surface.append(f"database error signature ({sig})")
+            break
+    for marker in ("executed statement:", "executed query:", "database query:"):
+        if marker in lowered_doc:
+            sqli_surface.append(f"disclosed backend database query execution ({marker.rstrip(':')})")
+            break
+
     return {
         CATEGORY_XSS: [*dom_xss, *postmessage_leaks, *integrity],
+        CATEGORY_SQLI: sqli_surface,
         CATEGORY_HEADERS: [*mixed, *passwords, *insecure_action],
         CATEGORY_CORS: [*takeovers, *tabnabbing, *storage_leaks],
         CATEGORY_SSRF: [*redirects, *csrf, *hidden_tampering],
@@ -1827,6 +1860,8 @@ def _canary_reflection(
     timeout: float,
     deep: bool,
     visited: list[str],
+    surfaces: list[dict[str, list[str]]] | None = None,
+    trusted_external: Sequence[str] | None = None,
 ) -> bool:
     """Return True when operator-requested probing shows unescaped reflection.
 
@@ -1872,6 +1907,9 @@ def _canary_reflection(
         if int(response.status_code) >= 400:
             continue
         body = _body_text(response)
+        if surfaces is not None and body:
+            probe_is_https = urlparse(probe_url).scheme.lower() == "https"
+            surfaces.append(_inspect_html_surface(body, probe_url, probe_is_https, trusted_external))
         if body and _has_unescaped_reflection(body, REFLECTION_PROBE):
             return True
     return False
@@ -2029,9 +2067,10 @@ def _audit_web(
 
     reflection_raw = False
     if probe and body:
-        reflection_raw = _canary_reflection(final_url, client, timeout, deep, visited)
+        reflection_raw = _canary_reflection(final_url, client, timeout, deep, visited, surfaces, trusted_external)
 
     xss_surface_reasons = _surface_reasons(surfaces, CATEGORY_XSS)
+    sqli_surface_reasons = _surface_reasons(surfaces, CATEGORY_SQLI)
     csrf_reasons = _surface_reasons(surfaces, "csrf")
     header_reasons = _surface_reasons(surfaces, CATEGORY_HEADERS)
     stack_surface_reasons = _surface_reasons(surfaces, CATEGORY_STACK)
@@ -2048,6 +2087,11 @@ def _audit_web(
 
     xss = _check_xss_surface(headers, body, reflection_raw)
     xss = _merge_surface(xss, xss_surface_reasons, ["HDR001"], False)
+
+    sqli = _check_sqli_surface(headers, body)
+    has_sql_error = any("database error" in r or "exception" in r for r in sqli_surface_reasons)
+    sqli = _merge_surface(sqli, sqli_surface_reasons, ["SQLI005"], confirms=has_sql_error)
+
     headers_result = _check_header_surface(headers, cookies)
     headers_result = _merge_surface(headers_result, header_reasons, ["HDR003"], False)
     cors = _check_cors_surface(headers, body)
@@ -2059,7 +2103,7 @@ def _audit_web(
 
     categories = (
         xss,
-        _check_sqli_surface(headers, body),
+        sqli,
         headers_result,
         cors,
         _check_ssrf_surface(redirect_reasons, body),
@@ -2117,9 +2161,14 @@ def _build_web_report(
         cors = _merge_surface(cors, cors_surface, ["CLD002", "CLT001", "CLT002"], False)
     stack_surface = surface.get(CATEGORY_STACK, [])
     stack = _check_stack_surface(lowered, body, [target], stack_surface)
+    sqli = _check_sqli_surface(lowered, body)
+    sqli_surface = surface.get(CATEGORY_SQLI, [])
+    if sqli_surface:
+        has_sql_error = any("database error" in r or "exception" in r for r in sqli_surface)
+        sqli = _merge_surface(sqli, sqli_surface, ["SQLI005"], confirms=has_sql_error)
     categories = (
         _check_xss_surface(lowered, body, reflection_raw),
-        _check_sqli_surface(lowered, body),
+        sqli,
         _check_header_surface(lowered, cookie_values),
         cors,
         _check_ssrf_surface(surface.get(CATEGORY_SSRF, []), body),

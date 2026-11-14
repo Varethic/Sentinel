@@ -107,10 +107,33 @@ def _classify(node: ast.AST) -> DynamicKind:
 class SqlVisitor(Visitor):
     """AST visitor implementing the SQL injection rules."""
 
+    def __init__(self, target: SourceFile, rules: list[Rule]) -> None:
+        super().__init__(target, rules)
+        self._assignments: dict[str, ast.AST] = {}
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                self._assignments[target.id] = node.value
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        if isinstance(node.target, ast.Name) and node.value is not None:
+            self._assignments[node.target.id] = node.value
+        self.generic_visit(node)
+
     def visit_Call(self, node: ast.Call) -> None:
         """Inspect every call whose name matches a configured SQL sink."""
         self._inspect(node)
         self.generic_visit(node)
+
+    def _resolve_argument(self, argument: ast.AST) -> ast.AST:
+        visited: set[str] = set()
+        current = argument
+        while isinstance(current, ast.Name) and current.id in self._assignments and current.id not in visited:
+            visited.add(current.id)
+            current = self._assignments[current.id]
+        return current
 
     def _inspect(self, node: ast.Call) -> None:
         """Evaluate one call node against the configured SQL sink rules."""
@@ -129,11 +152,12 @@ class SqlVisitor(Visitor):
         keywords = applicable[0].patterns._strings("sql_keywords")
         applicable.sort(key=lambda rule: rule.rule_id != "SQLI005")
         for argument in _query_arguments(node):
-            if not _looks_like_sql_argument(argument, keywords):
+            resolved = self._resolve_argument(argument)
+            if not _looks_like_sql_argument(resolved, keywords):
                 continue
-            kind = _classify(argument)
+            kind = _classify(resolved)
             for rule in applicable:
-                rule_id = self._match(rule, name, kind, argument, node)
+                rule_id = self._match(rule, name, kind, resolved, node)
                 if rule_id is None:
                     continue
                 self._add(rule_id, node, MESSAGES[rule_id].format(sink=name))
