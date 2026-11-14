@@ -8,17 +8,20 @@ operator. Cookie analysis is read-only over ``Set-Cookie`` values.
 
 from __future__ import annotations
 
+import json
 import re
 import secrets
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import Enum
 from html.parser import HTMLParser
+from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 import httpx
 
 from src.core.engine import Finding
-from src.core.loader import Rule, _domain_matches, _load_whitelist, _rules_for
+from src.core.loader import Rule, _rules_for
 
 ANALYZER_NAME: str = "headers"
 DEFAULT_TIMEOUT: float = 10.0
@@ -504,6 +507,63 @@ def _matches(finding: Finding) -> str:
     return finding.rule_id
 
 
+def _is_whitelisted_host(host: str, patterns: Iterable[str]) -> bool:
+    """Return True if host matches any exact or wildcard domain pattern."""
+    h = host.lower().strip()
+    if ":" in h:
+        h = h.split(":", 1)[0]
+    for pattern in patterns:
+        p = pattern.lower().strip()
+        if not p:
+            continue
+        if p.startswith("*."):
+            base = p[2:]
+            if h == base or h.endswith("." + base):
+                return True
+        elif p.startswith("."):
+            base = p[1:]
+            if h == base or h.endswith("." + base):
+                return True
+        else:
+            if h == p:
+                return True
+    return False
+
+
+def _load_whitelist() -> dict[str, list[str]]:
+    """Load default whitelist configuration and optional local .sentinelwhitelist."""
+    whitelist_path = Path(__file__).resolve().parent.parent / "json" / "whitelist.json"
+    domains: list[str] = ["localhost", "127.0.0.1"]
+    trusted_external: list[str] = []
+
+    if whitelist_path.is_file():
+        try:
+            raw = whitelist_path.read_text(encoding="utf-8")
+            data = json.loads(raw)
+            if isinstance(data, dict):
+                domains = [str(d) for d in data.get("domains", domains)]
+                trusted_external = [str(d) for d in data.get("trusted_external_links", [])]
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    # Load local .sentinelwhitelist in current working directory if present
+    local_whitelist = Path.cwd() / ".sentinelwhitelist"
+    if local_whitelist.is_file():
+        try:
+            content = local_whitelist.read_text(encoding="utf-8", errors="replace")
+            for line in content.splitlines():
+                stripped = line.partition("#")[0].strip()
+                if stripped and stripped not in domains:
+                    domains.append(stripped)
+        except OSError:
+            pass
+
+    return {
+        "domains": domains,
+        "trusted_external_links": trusted_external,
+    }
+
+
 def _analyze(
     url: str,
     timeout: float = DEFAULT_TIMEOUT,
@@ -515,7 +575,7 @@ def _analyze(
     target = _normalize_url(url)
     target_host = urlparse(target).hostname or ""
     whitelist = _load_whitelist()
-    if _domain_matches(target_host, whitelist.get("domains", [])):
+    if _is_whitelisted_host(target_host, whitelist.get("domains", [])):
         return HeaderReport(
             url=target,
             final_url=target,
@@ -1665,7 +1725,7 @@ def _inspect_html_surface(
         if target == "_blank" and (href.startswith("http://") or href.startswith("https://")):
             if not _is_same_origin(href, base):
                 dest_host = urlparse(href).hostname or ""
-                if trusted_external and _domain_matches(dest_host, trusted_external):
+                if trusted_external and _is_whitelisted_host(dest_host, trusted_external):
                     continue
                 if "noopener" not in rel and "noreferrer" not in rel:
                     display = href if len(href) <= 45 else href[:42] + "..."
@@ -1950,7 +2010,7 @@ def _audit_web(
     target_host = urlparse(target).hostname or ""
 
     whitelist = _load_whitelist()
-    if _domain_matches(target_host, whitelist.get("domains", [])):
+    if _is_whitelisted_host(target_host, whitelist.get("domains", [])):
         return WebReport(
             url=target,
             final_url=target,
