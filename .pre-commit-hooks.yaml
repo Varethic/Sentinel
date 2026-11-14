@@ -1,0 +1,7 @@
+- id: sentinel
+  name: Sentinel Security Audit
+  description: Defensive SAST for Python, full-stack web files, and container configs
+  entry: sentinel changed
+  language: python
+  pass_filenames: false
+  always_run: true

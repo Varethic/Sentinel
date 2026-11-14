@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0.0",
+  "analyzer": "webfile",
+  "title": "Full-Stack Web & Container Security Rules",
+  "rules": [
+    {
+      "rule_id": "WEB001",
+      "name": "Unsafe client-side DOM or React HTML sink",
+      "category": "A03:2021 - Injection",
+      "cwe_id": "CWE-79",
+      "cve": "CVE-2020-11022",
+      "cve_date": "2020-04-29",
+      "severity": "HIGH",
+      "description": "Unsafe client-side DOM or React HTML sink (dangerouslySetInnerHTML, innerHTML =, outerHTML =, document.write, or eval) receives dynamic input without sanitization, leading to client-side Cross-Site Scripting (XSS).",
+      "remediation_example": "element.textContent = sanitize(userInput); // avoid raw HTML injection sinks",
+      "patterns": {
+        "sinks": ["dangerouslySetInnerHTML", "innerHTML", "outerHTML", "document.write", "eval"]
+      },
+      "tags": ["xss", "dom", "react", "client-side"],
+      "references": ["https://cwe.mitre.org/data/definitions/79.html"],
+      "enabled": true
+    },
+    {
+      "rule_id": "WEB002",
+      "name": "Hardcoded secrets or credentials in web configuration or source",
+      "category": "A02:2021 - Cryptographic Failures",
+      "cwe_id": "CWE-798",
+      "cve": "CVE-2023-28432",
+      "cve_date": "2023-03-22",
+      "severity": "CRITICAL",
+      "description": "Hardcoded API key, token, private key or database password committed in .env, JavaScript, TypeScript, PHP, Dockerfile (ENV/ARG), or docker-compose.yml file.",
+      "remediation_example": "Inject secrets dynamically at runtime via Docker secrets, KMS, or secret manager rather than committing in files.",
+      "patterns": {
+        "keywords": ["api_key", "secret", "password", "token", "private_key"]
+      },
+      "tags": ["secrets", "credentials", "docker", "env"],
+      "references": ["https://cwe.mitre.org/data/definitions/798.html"],
+      "enabled": true
+    },
+    {
+      "rule_id": "WEB003",
+      "name": "Unsafe PHP code execution or shell injection sink",
+      "category": "A03:2021 - Injection",
+      "cwe_id": "CWE-94",
+      "cve": "CVE-2024-4577",
+      "cve_date": "2024-06-06",
+      "severity": "CRITICAL",
+      "description": "Direct execution of untrusted input in PHP dynamic evaluation or shell execution sinks (eval, shell_exec, system, passthru, exec with $_GET/$_POST/$_REQUEST).",
+      "remediation_example": "Avoid dynamic code execution and use parameterized functions or escapeshellarg().",
+      "patterns": {
+        "sinks": ["eval", "shell_exec", "system", "passthru", "exec"]
+      },
+      "tags": ["php", "rce", "command-injection"],
+      "references": ["https://cwe.mitre.org/data/definitions/94.html"],
+      "enabled": true
+    },
+    {
+      "rule_id": "WEB004",
+      "name": "Container runs as root user or lacks non-root USER instruction",
+      "category": "A04:2021 - Insecure Design",
+      "cwe_id": "CWE-250",
+      "cve": "CVE-2024-21626",
+      "cve_date": "2024-01-31",
+      "severity": "HIGH",
+      "description": "Dockerfile explicitly sets USER root or does not declare a non-root USER instruction, allowing container processes to run with full host-root capabilities upon container breakout.",
+      "remediation_example": "RUN groupadd -r appuser && useradd -r -g appuser appuser\nUSER appuser",
+      "patterns": {
+        "instructions": ["USER root"]
+      },
+      "tags": ["docker", "container", "privilege"],
+      "references": ["https://cwe.mitre.org/data/definitions/250.html"],
+      "enabled": true
+    },
+    {
+      "rule_id": "WEB005",
+      "name": "Unpinned base image or insecure remote ADD in Dockerfile",
+      "category": "A06:2021 - Vulnerable and Outdated Components",
+      "cwe_id": "CWE-829",
+      "cve": "CVE-2021-44228",
+      "cve_date": "2021-12-10",
+      "severity": "MEDIUM",
+      "description": "Dockerfile uses an unpinned ':latest' base image or fetches untrusted remote files via 'ADD http://', risking supply chain poisoning and non-reproducible builds.",
+      "remediation_example": "FROM python:3.11.8-slim-bookworm\n# Use COPY and curl/wget with checksum verification instead of ADD http",
+      "patterns": {
+        "instructions": ["ADD http://", "ADD https://", ":latest"]
+      },
+      "tags": ["docker", "container", "supply-chain"],
+      "references": ["https://cwe.mitre.org/data/definitions/829.html"],
+      "enabled": true
+    }
+  ]
+}

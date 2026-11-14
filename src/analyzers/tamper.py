@@ -19,6 +19,7 @@ from src.core.engine import (
     _call_arguments,
     _call_name,
     _dotted_name,
+    _is_route_decorator,
     _string_value,
 )
 from src.core.loader import Rule, _rules_for
@@ -69,34 +70,6 @@ _RATE_LIMIT_HEADERS: tuple[str, ...] = (
     "retry-after",
     "x-rate-limit-limit",
 )
-
-
-def _is_route_decorator(dec: ast.AST) -> tuple[bool, str, list[str]]:
-    """Check if decorator registers a route; return (is_route, path, methods)."""
-    call_node: ast.Call | None = dec if isinstance(dec, ast.Call) else None
-    if call_node is None:
-        return False, "", []
-
-    dotted = _dotted_name(call_node.func).lower()
-    route_indicators = {"route", "get", "post", "put", "delete", "patch"}
-    if not any(token in dotted for token in route_indicators):
-        return False, "", []
-
-    path = ""
-    methods: list[str] = []
-    for arg in _call_arguments(call_node):
-        val = _string_value(arg)
-        if val and val.startswith("/"):
-            path = val
-
-    for kw in call_node.keywords:
-        if kw.arg == "methods" and isinstance(kw.value, (ast.List, ast.Tuple, ast.Set)):
-            for elt in kw.value.elts:
-                s = _string_value(elt)
-                if s:
-                    methods.append(s.upper())
-
-    return True, path, methods
 
 
 def _has_rate_limit(decorators: list[ast.AST]) -> bool:

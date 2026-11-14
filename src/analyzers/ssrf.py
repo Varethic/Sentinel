@@ -19,11 +19,10 @@ from src.core.engine import (
     _call_arguments,
     _call_name,
     _dotted_name,
-    _guarded_names,
+    _is_guarded_scope,
     _iter_subexpressions,
     _mentions_guard,
     _string_value,
-    _uses_only_guarded_names,
 )
 from src.core.loader import Rule, _rules_for
 
@@ -213,7 +212,7 @@ class SsrfVisitor(Visitor):
             return False
         if _mentions_guard(argument, GUARD_TOKENS):
             return False
-        if self._mentions_guarded_name(argument, node):
+        if _is_guarded_scope(self._target.tree, node, argument, GUARD_CALLS, GUARD_TOKENS):
             return False
         kind = _classify(argument)
         if kind is DynamicKind.NONE:
@@ -224,16 +223,6 @@ class SsrfVisitor(Visitor):
             MESSAGES["SSRF001"].format(sink=_call_name(node), kind=_kind_label(kind)),
         )
         return True
-
-    def _mentions_guarded_name(self, node: ast.AST, call: ast.AST) -> bool:
-        """Return True when the expression only uses allow-list checked names."""
-        guarded = _guarded_names(
-            self._target.tree,
-            call,
-            guard_calls=GUARD_CALLS,
-            guard_tokens=GUARD_TOKENS,
-        )
-        return _uses_only_guarded_names(node, guarded)
 
     def _url_argument(self, node: ast.Call) -> ast.AST | None:
         """Return the node carrying the destination URL for a request call."""

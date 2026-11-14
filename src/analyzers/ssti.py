@@ -18,8 +18,10 @@ from src.core.engine import (
     Visitor,
     _call_name,
     _dynamic_kind,
+    _first_argument,
     _import_aliases,
     _iter_subexpressions,
+    _resolve_import_sinks,
 )
 from src.core.loader import Rule, _rules_for
 
@@ -81,11 +83,6 @@ def _kind_label(kind: DynamicKind) -> str:
     return _KIND_LABELS.get(kind, "a value")
 
 
-def _first_argument(node: ast.Call) -> ast.AST | None:
-    """Return the first positional argument of a call, if any."""
-    return node.args[0] if node.args else None
-
-
 def _is_static_source(node: ast.AST | None) -> bool:
     """Return True when the template source is a fixed literal.
 
@@ -110,20 +107,8 @@ class SstiVisitor(Visitor):
         self._template_names = self._template_bindings()
 
     def _template_bindings(self) -> set[str]:
-        """Return local names referring to a template class or helper.
-
-        Covers ``from jinja2 import Template``, ``import mako.template as mt``
-        and ``Template as MakoTemplate`` aliases, so aliased imports match.
-        """
-        names: set[str] = {sink.lower() for sink in SOURCE_SINKS}
-        for local, target in _import_aliases(self._target.tree).items():
-            final = target.rsplit(".", 1)[-1]
-            if final in SOURCE_SINKS:
-                names.add(local)
-                names.add(final)
-            if any(target.startswith(module) for module in TEMPLATE_MODULES):
-                names.add(local)
-        return names
+        """Return local names referring to a template class or helper."""
+        return _resolve_import_sinks(self._target.tree, SOURCE_SINKS, TEMPLATE_MODULES)
 
     def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast API name
         """Inspect every call that may compile a template."""

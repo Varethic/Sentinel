@@ -18,6 +18,8 @@ from src.core.engine import (
     _call_arguments,
     _call_name,
     _dotted_name,
+    _has_auth_decorator,
+    _is_route_decorator,
     _string_value,
 )
 from src.core.loader import Rule, _rules_for
@@ -88,38 +90,6 @@ _AUTH_DECORATORS: frozenset[str] = frozenset(
 )
 
 
-def _is_route_decorator(dec: ast.AST) -> tuple[bool, str]:
-    """Check if a decorator registers a route and return the path if found."""
-    call_node: ast.Call | None = None
-    if isinstance(dec, ast.Call):
-        call_node = dec
-    if call_node is None:
-        return False, ""
-
-    dotted = _dotted_name(call_node.func).lower()
-    route_indicators = {"route", "get", "post", "put", "delete", "patch"}
-    if not any(token in dotted for token in route_indicators):
-        return False, ""
-
-    for arg in _call_arguments(call_node):
-        val = _string_value(arg)
-        if val and val.startswith("/"):
-            return True, val
-    return True, ""
-
-
-def _has_auth_decorator(decorators: list[ast.AST]) -> bool:
-    """Return True if any decorator looks like an authentication check."""
-    for dec in decorators:
-        node = dec.func if isinstance(dec, ast.Call) else dec
-        dotted = _dotted_name(node).lower()
-        if any(auth_kw in dotted for auth_kw in _AUTH_DECORATORS):
-            return True
-        if isinstance(dec, ast.Call) and "depends" in dotted:
-            return True
-    return False
-
-
 def _function_references_auth(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     """Return True if the function body references common auth objects or sessions."""
     for sub in ast.walk(node):
@@ -150,7 +120,7 @@ class IdorVisitor(Visitor):
         is_route = False
         route_path = ""
         for dec in node.decorator_list:
-            matched, path = _is_route_decorator(dec)
+            matched, path, _ = _is_route_decorator(dec)
             if matched:
                 is_route = True
                 if path:

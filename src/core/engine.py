@@ -41,7 +41,38 @@ DEFAULT_EXCLUDED: frozenset[str] = frozenset(
     }
 )
 
-SOURCE_SUFFIXES: frozenset[str] = frozenset({".py", ".pyi"})
+SOURCE_SUFFIXES: frozenset[str] = frozenset(
+    {
+        ".py",
+        ".pyi",
+        ".js",
+        ".ts",
+        ".jsx",
+        ".tsx",
+        ".php",
+        ".html",
+        ".env",
+    }
+)
+WEB_FILENAMES: frozenset[str] = frozenset(
+    {
+        "dockerfile",
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        "compose.yml",
+        "compose.yaml",
+    }
+)
+
+
+def _is_auditable_file(path: Path) -> bool:
+    """Return True if the file is a Python, web, or container configuration file."""
+    name = path.name.lower()
+    if name in WEB_FILENAMES or name.startswith("dockerfile."):
+        return True
+    if name.startswith(".env"):
+        return True
+    return path.suffix.lower() in SOURCE_SUFFIXES
 
 
 class Finding(BaseModel):
@@ -538,6 +569,157 @@ def _matches_module(dotted: str, modules: Iterable[str]) -> str:
     return ""
 
 
+def _first_argument(node: ast.Call) -> ast.AST | None:
+    """Return the first positional argument of a call, if any."""
+    return node.args[0] if node.args else None
+
+
+def _keyword_bool(node: ast.Call, name: str) -> bool | None:
+    """Return the boolean value of a keyword argument, or None if absent."""
+    for keyword in node.keywords:
+        if keyword.arg and keyword.arg.lower() == name.lower():
+            value = keyword.value
+            if isinstance(value, ast.Constant) and isinstance(value.value, bool):
+                return value.value
+    return None
+
+
+def _is_route_decorator(dec: ast.AST) -> tuple[bool, str, list[str]]:
+    """Check if a decorator registers an HTTP route; return (is_route, path, methods)."""
+    call_node: ast.Call | None = dec if isinstance(dec, ast.Call) else None
+    if call_node is None:
+        return False, "", []
+
+    dotted = _dotted_name(call_node.func).lower()
+    route_indicators = {"route", "get", "post", "put", "delete", "patch"}
+    if not any(token in dotted for token in route_indicators):
+        return False, "", []
+
+    path = ""
+    methods: list[str] = []
+    for arg in _call_arguments(call_node):
+        val = _string_value(arg)
+        if val and val.startswith("/"):
+            path = val
+
+    for kw in call_node.keywords:
+        if kw.arg == "methods" and isinstance(kw.value, (ast.List, ast.Tuple, ast.Set)):
+            for elt in kw.value.elts:
+                s = _string_value(elt)
+                if s:
+                    methods.append(s.upper())
+
+    return True, path, methods
+
+
+def _has_auth_decorator(
+    decorators: Sequence[ast.AST],
+    auth_keywords: Sequence[str] | None = None,
+) -> bool:
+    """Return True if any decorator looks like an authentication or authorization check."""
+    keywords = (
+        {kw.lower() for kw in auth_keywords}
+        if auth_keywords is not None
+        else {
+            "login_required",
+            "admin_required",
+            "requires_auth",
+            "authenticated",
+            "permission_required",
+            "depends",
+            "jwt_required",
+            "auth_required",
+            "protect",
+            "check_permissions",
+        }
+    )
+    for dec in decorators:
+        node = dec.func if isinstance(dec, ast.Call) else dec
+        dotted = _dotted_name(node).lower()
+        if any(auth_kw in dotted for auth_kw in keywords):
+            return True
+        if isinstance(dec, ast.Call) and "depends" in dotted:
+            return True
+    return False
+
+
+def _is_guarded_scope(
+    tree: ast.AST,
+    call: ast.AST,
+    argument: ast.AST,
+    guard_calls: Iterable[str] = (),
+    guard_tokens: Iterable[str] = (),
+) -> bool:
+    """Return True when an argument in a call is validated by an allow-list in the enclosing scope."""
+    guarded = _guarded_names(tree, call, guard_calls=guard_calls, guard_tokens=guard_tokens)
+    return _uses_only_guarded_names(argument, guarded)
+
+
+def _has_concurrency_lock(scope: ast.AST, lock_tokens: Iterable[str]) -> bool:
+    """Return True when scope uses DB row locking or thread/async locks."""
+    lowered_tokens = {tok.lower() for tok in lock_tokens}
+    if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        for dec in scope.decorator_list:
+            dname = _dotted_name(dec).lower()
+            if any(tok in dname for tok in lowered_tokens):
+                return True
+
+    for child in ast.walk(scope):
+        if isinstance(child, (ast.With, ast.AsyncWith)):
+            for item in child.items:
+                wname = _dotted_name(item.context_expr).lower()
+                if any(tok in wname for tok in lowered_tokens):
+                    return True
+        elif isinstance(child, ast.Call):
+            cname = _dotted_name(child.func).lower()
+            if any(tok in cname for tok in lowered_tokens):
+                return True
+    return False
+
+
+def _has_positive_bounds_check(scope: ast.AST, var_name: str) -> bool:
+    """Return True if scope contains a comparison ensuring var_name is positive."""
+    target = var_name.lower()
+
+    def _name_of(node: ast.AST) -> str:
+        if isinstance(node, ast.Name):
+            return node.id.lower()
+        if isinstance(node, ast.Attribute):
+            return node.attr.lower()
+        return ""
+
+    for child in ast.walk(scope):
+        if not isinstance(child, ast.If):
+            continue
+        for test in ast.walk(child.test):
+            if isinstance(test, ast.Compare):
+                left_name = _name_of(test.left)
+                comp_names = [_name_of(comp) for comp in test.comparators]
+                if left_name == target or target in comp_names:
+                    for op in test.ops:
+                        if isinstance(op, (ast.Lt, ast.LtE, ast.Gt, ast.GtE)):
+                            return True
+    return False
+
+
+def _resolve_import_sinks(
+    tree: ast.AST,
+    base_sinks: Iterable[str],
+    target_modules: Iterable[str],
+) -> set[str]:
+    """Return local names referring to imported sinks or module classes."""
+    names: set[str] = {sink.lower() for sink in base_sinks}
+    lowered_modules = {mod.lower() for mod in target_modules}
+    for local, target in _import_aliases(tree).items():
+        final = target.rsplit(".", 1)[-1]
+        if final in names:
+            names.add(local)
+        if any(target.startswith(module) for module in lowered_modules):
+            names.add(local)
+            names.add(final)
+    return names
+
+
 def _collect_files(
     target: Path,
     excluded: frozenset[str] = DEFAULT_EXCLUDED,
@@ -549,8 +731,8 @@ def _collect_files(
         raise FileNotFoundError(f"target not found: {target}")
 
     if resolved.is_file():
-        if resolved.suffix.lower() not in suffixes:
-            raise ValueError(f"unsupported file type: {resolved.suffix or '(none)'}")
+        if not _is_auditable_file(resolved):
+            raise ValueError(f"unsupported file type: {resolved.suffix or resolved.name}")
         return [resolved], 0
 
     files: list[Path] = []
@@ -560,7 +742,7 @@ def _collect_files(
             continue
         if not path.is_file():
             continue
-        if path.suffix.lower() in suffixes:
+        if _is_auditable_file(path):
             files.append(path)
         else:
             skipped += 1
@@ -588,8 +770,10 @@ def _display_path(path: Path, root: Path) -> str:
 
 def _parse_ast(path: Path, source: str) -> ast.AST:
     """Parse source text into an AST, decoded from bytes like CPython does."""
-    data = path.read_bytes()
-    return ast.parse(data, filename=str(path))
+    if path.suffix.lower() in {".py", ".pyi"}:
+        data = path.read_bytes()
+        return ast.parse(data, filename=str(path))
+    return ast.Module(body=[], type_ignores=[])
 
 
 def _read_source(path: Path, root: Path) -> SourceFile:
@@ -609,7 +793,7 @@ def _read_source(path: Path, root: Path) -> SourceFile:
 def _is_suppressed_line(line: str) -> bool:
     """Return True if the source line contains a suppression comment."""
     lowered = line.lower()
-    return "# sentinel: ignore" in lowered or "# nosec" in lowered
+    return "sentinel: ignore" in lowered or "nosec" in lowered
 
 
 def _dedupe(findings: Iterable[Finding]) -> list[Finding]:

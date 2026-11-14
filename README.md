@@ -9,7 +9,7 @@ auditing of live responses — with zero offensive capability.
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Rules](https://img.shields.io/badge/rules-167-informational)](src/json)
+[![Rules](https://img.shields.io/badge/rules-172-informational)](src/json)
 [![Scope](https://img.shields.io/badge/scope-defensive%20%2F%20passive-blue)](#safety-model)
 
 </div>
@@ -61,8 +61,8 @@ the ruleset is auditable by a security reviewer without reading analyzer code.
    │  deserial.py, xxe.py, ssti.py, auth.py,│     │    Visitor base & suppressions│
    │  redos.py, api.py, deps.py, host.py,   │     │    file traversal, dedupe     │
    │  idor.py, cloud.py, client.py, tamper, │     │                               │
-   │  logic.py, cve.py                      │     │  loader.py                    │
-   │                (AST visitors)          │     │    Pydantic rule schema       │
+   │  logic.py, cve.py, webfile.py          │     │  loader.py                    │
+   │                (AST & file analyzers)  │     │    Pydantic rule schema       │
    │                                        │     │    cached JSON validation     │
    │  headers.py   (deep passive web audit) │     │                               │
    │        reads sinks, patterns,          │     │                               │
@@ -74,8 +74,8 @@ the ruleset is auditable by a security reviewer without reading analyzer code.
    ┌────────────────────────────────────┐          ┌──────────────────────────────┐
    │  reporters/   (output)             │          │  json/   (rule data)         │
    │                                    │          │                              │
-   │  terminal.py   Plain-text URL      │          │  21 rule documents           │
-   │                summary, Rich       │          │  167 total security rules    │
+   │  terminal.py   Plain-text URL      │          │  22 rule documents           │
+   │                summary, Rich       │          │  172 total security rules    │
    │                tables for details  │          │  rule_id, name, category,    │
    │  json.py       CI/CD envelope      │          │  cwe_id, severity, desc,     │
    │  sarif.py      SARIF v2.1.0 output │          │  cve, cve_date, remediation  │
@@ -87,10 +87,11 @@ the ruleset is auditable by a security reviewer without reading analyzer code.
 ```text
 Sentinel/
 ├── .github/workflows/sentinel.yml
+├── .pre-commit-hooks.yaml
 ├── src/
 │   ├── core/{engine,loader}.py
-│   ├── analyzers/{sqli,xss,cmdi,traversal,secrets,ssrf,deserial,xxe,ssti,auth,redos,api,deps,host,idor,cloud,client,tamper,logic,cve,headers}.py
-│   ├── json/{sqli,xss,cmdi,traversal,secrets,ssrf,deserial,xxe,ssti,auth,redos,api,deps,host,idor,cloud,client,tamper,logic,cve,headers}.json
+│   ├── analyzers/{sqli,xss,cmdi,traversal,secrets,ssrf,deserial,xxe,ssti,auth,redos,api,deps,host,idor,cloud,client,tamper,logic,cve,webfile,headers}.py
+│   ├── json/{sqli,xss,cmdi,traversal,secrets,ssrf,deserial,xxe,ssti,auth,redos,api,deps,host,idor,cloud,client,tamper,logic,cve,webfile,headers}.json
 │   ├── reporters/{terminal,json,sarif}.py
 │   └── cli.py
 ├── pyproject.toml
@@ -101,7 +102,7 @@ Sentinel/
 
 ## 2. Ruleset coverage
 
-167 rules across twenty-one documents. Severity drives the CI gate: **HIGH** and **CRITICAL**
+172 rules across twenty-two documents. Severity drives the CI gate: **HIGH** and **CRITICAL**
 findings fail a run by default. Every rule cites a reference CVE and its NVD publication date,
 so a finding can be traced to a real-world instance of the same vulnerability class.
 
@@ -131,6 +132,7 @@ the scanned code contains that specific CVE.
 | `src/json/tamper.json` | `tamper` | 5 | rate-limiting/brute-force protection, parameter tampering, HTTP verb tampering |
 | `src/json/logic.json` | `logic` | 2 | race conditions in balances/counters, financial input bounds checks |
 | `src/json/cve.json` | `cve` | 100 | curated 100-CVE vulnerability intelligence (50 CRITICAL + 50 HIGH) |
+| `src/json/webfile.json` | `webfile` | 5 | full-stack web and container files (.js, .ts, .php, .html, .env, Dockerfile, docker-compose) |
 
 ### SQL injection — `src/json/sqli.json`
 
@@ -366,17 +368,32 @@ Sentinel includes an integrated knowledge base of **100 high-impact web and API 
 | **Dual-Mode Detection** | **SAST**: Detects vulnerable dependency versions and vulnerable code patterns in manifest files (`requirements.txt`, `Pipfile`, `pyproject.toml`) and Python imports.<br>**Web Surface**: Automatically correlates disclosed HTTP `Server`, `X-Powered-By`, and `X-Generator` banners, plus exposed administrative or setup paths, against known exploitable CVE signatures during passive audits. |
 | **Data Integrity** | 100% verified NVD publication dates, CVSS scores, remediation advisories, and CWE classifications. |
 
+### Full-stack web & container security — `src/json/webfile.json`
+
+| Rule | Severity | OWASP Top 10 (2021) | CWE | Reference CVE | Detects |
+|---|:---:|---|---|---|---|
+| `WEB001` | **HIGH** | A03 Injection | [CWE-79](https://cwe.mitre.org/data/definitions/79.html) | `CVE-2020-11022` (2020-04-29) | Unsafe DOM/React XSS sinks (`dangerouslySetInnerHTML`, `innerHTML =`, `outerHTML =`, `document.write(`, `eval(`) in `.js`, `.ts`, `.jsx`, `.tsx`, and `.html` files |
+| `WEB002` | **CRITICAL** | A02 Cryptographic Failures | [CWE-798](https://cwe.mitre.org/data/definitions/798.html) | `CVE-2023-28432` (2023-03-22) | Hardcoded API keys, tokens, or database credentials committed inside `.env`, `.js`, `.ts`, `.php`, `Dockerfile` (`ENV`/`ARG`), or `docker-compose.yml` files (ignoring `.env.example` / `.env.template` placeholder values) |
+| `WEB003` | **CRITICAL** | A03 Injection | [CWE-94](https://cwe.mitre.org/data/definitions/94.html) | `CVE-2024-4577` (2024-06-06) | Unsafe PHP RCE/shell sinks (`eval($_`, `shell_exec($_`, `system($_`, `passthru($_`, `exec($_`) in `.php` files |
+| `WEB004` | **HIGH** | A04 Insecure Design | [CWE-250](https://cwe.mitre.org/data/definitions/250.html) | `CVE-2024-21626` (2024-01-31) | `Dockerfile` configurations running as `USER root` or missing a non-root `USER` instruction |
+| `WEB005` | **MEDIUM** | A06 Outdated Components | [CWE-829](https://cwe.mitre.org/data/definitions/829.html) | `CVE-2021-44228` (2021-12-10) | `Dockerfile` instructions using remote `ADD http://` or unpinned `:latest` base images |
+
+`WEB001` inspects client-side templates and scripts for raw DOM injection vectors.
+`WEB002` scans environment variables, secrets declarations, and container compose manifests with placeholder filtering.
+`WEB003` flags remote code execution in PHP web handlers.
+`WEB004` and `WEB005` enforce container least privilege and supply chain immutability.
+
 ### 20-CWE Complete OWASP Web/API/Client Coverage
 
-Sentinel maps 100% of its 167 rules across 20 foundational CWE categories:
+Sentinel maps 100% of its 172 rules across 20 foundational CWE categories:
 
 | # | CWE ID | Category Name | Sentinel Rule Documents | Rule IDs | OWASP Top 10 |
 |---|---|---|---|---|---|
 | 1 | CWE-89 | SQL Injection | `sqli.json`, `headers.json` | `SQLI001`-`SQLI005`, Passive | A03:2021 Injection |
-| 2 | CWE-79 | Cross-Site Scripting (Reflected, Stored, DOM) | `xss.json`, `headers.json` | `XSS001`-`XSS004`, `DOM001`-`DOM002` | A03:2021 Injection |
-| 3 | CWE-78, CWE-95 | Command & Code Injection | `cmdi.json` | `CMDI001`-`CMDI003` | A03:2021 Injection |
+| 2 | CWE-79 | Cross-Site Scripting (Reflected, Stored, DOM) | `xss.json`, `headers.json`, `webfile.json` | `XSS001`-`XSS004`, `DOM001`-`DOM002`, `WEB001` | A03:2021 Injection |
+| 3 | CWE-78, CWE-94, CWE-95 | Command & Code Injection | `cmdi.json`, `webfile.json` | `CMDI001`-`CMDI003`, `WEB003` | A03:2021 Injection |
 | 4 | CWE-22 | Path Traversal & Arbitrary File Access | `traversal.json` | `PATH001`-`PATH003` | A01:2021 Broken Access Control |
-| 5 | CWE-798 | Hardcoded Credentials & Secrets | `secrets.json` | `SEC001` | A02:2021 Cryptographic Failures |
+| 5 | CWE-798 | Hardcoded Credentials & Secrets | `secrets.json`, `webfile.json` | `SEC001`, `WEB002` | A02:2021 Cryptographic Failures |
 | 6 | CWE-327, CWE-338 | Weak Cryptography & Weak PRNG | `secrets.json`, `deps.json` | `SEC002`, `SEC003`, `DEP002` | A02:2021 Cryptographic Failures |
 | 7 | CWE-918 | Server-Side Request Forgery (SSRF) | `ssrf.json`, `headers.json` | `SSRF001`-`SSRF002`, `HDR013` | A10:2021 Server-Side Request Forgery |
 | 8 | CWE-502 | Insecure Deserialization | `deserial.json` | `DES001`-`DES002` | A08:2021 Software and Data Integrity Failures |
@@ -393,8 +410,9 @@ Sentinel maps 100% of its 167 rules across 20 foundational CWE categories:
 | 19 | CWE-922, CWE-1021, CWE-345 | Client Storage & Reverse Tabnabbing | `client.json`, `headers.json` | `CLT001`-`CLT003`, `CLT002` | A04:2021 Insecure Design / A01 Broken Access Control |
 | 20 | CWE-307, CWE-472, CWE-650, CWE-235 | Rate-Limiting & Parameter Tampering | `tamper.json`, `headers.json` | `TMP001`-`TMP005` | A04:2021 Insecure Design / A07 Auth Failures |
 | — | CWE-362, CWE-840 | Concurrency Flaws & Business Logic | `logic.json` | `LGC001`-`LGC002` | A04:2021 Insecure Design |
+| — | CWE-250, CWE-829 | Container Least Privilege & Base Images | `webfile.json` | `WEB004`-`WEB005` | A04:2021 Insecure Design / A06 Outdated |
 | — | Multi-CWE | Enterprise Vulnerability Intelligence | `cve.json`, `headers.json` | `CVE001`-`CVE100` | A06:2021 Vulnerable and Outdated Components |
-| **Total** | | **Comprehensive Web & API Defense** | **21 Documents** | **167 Rules** | **100% OWASP Coverage** |
+| **Total** | | **Comprehensive Web & API Defense** | **22 Documents** | **172 Rules** | **100% OWASP Coverage** |
 
 ### Adding a rule
 
@@ -631,13 +649,27 @@ $ sentinel audit-code . --exclude vendor --quiet
 
 ### Git Changed-Files Auditing
 
-Quickly scan only modified, staged, or untracked `.py` files in your git repository:
+Quickly scan only modified, staged, or untracked files (.py, .js, .ts, .jsx, .tsx, .php, .html, .env, Dockerfile, docker-compose) in your git repository:
 
 ```bash
 $ sentinel changed                                # shorthand for changed-files SAST
 $ sentinel audit-code --changed                   # explicit flag form
 $ sentinel changed --format sarif                 # SARIF export of changed files
 ```
+
+### Pre-Commit Integration
+
+Sentinel includes a native `.pre-commit-hooks.yaml` hook to guard git commits. Add Sentinel to your `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/Varethic/Sentinel
+    rev: master
+    hooks:
+      - id: sentinel
+```
+
+This automatically runs `sentinel changed` on every commit with zero extra flags.
 
 ### Inline Suppression
 
@@ -761,7 +793,7 @@ jobs:
 |---|---|
 | `sentinel <target>` | Shorthand zero-flag audit: URL for web surface scan, or path for SAST. |
 | `sentinel changed` | Audit only modified and newly added git files. |
-| `sentinel audit-code <path>` | AST analysis of a file or directory (all 167 rules across 21 documents). |
+| `sentinel audit-code <path>` | Static analysis across Python, web, and container files (all 172 rules across 22 documents). |
 | `sentinel audit-headers <url>` | Deep passive HTTP header, cookie, and markup audit. |
 | `sentinel rules [--show]` | Validate and list every loaded rule document with CWE, CVE, and date. |
 

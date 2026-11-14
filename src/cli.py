@@ -40,6 +40,7 @@ from src.analyzers import ssti as ssti_analyzer
 from src.analyzers import ssrf as ssrf_analyzer
 from src.analyzers import tamper as tamper_analyzer
 from src.analyzers import traversal as traversal_analyzer
+from src.analyzers import webfile as webfile_analyzer
 from src.analyzers import xss as xss_analyzer
 from src.analyzers import xxe as xxe_analyzer
 from src.core import engine
@@ -58,11 +59,9 @@ URL_SCHEMES: tuple[str, ...] = ("http://", "https://")
 APP = typer.Typer(
     name=APP_NAME,
     help=(
-        "Defensive web security auditor: static AST analysis across 167 rules "
-        "and 20 CWE categories (SQLi, XSS, command injection, path traversal, secrets, SSRF, "
-        "deserialization, XXE, SSTI, auth/TLS, ReDoS, API/GraphQL, deprecated "
-        "modules, host header injection, IDOR, cloud storage, client storage, "
-        "rate limiting & request tampering, race conditions & business logic) "
+        "Defensive web security auditor: static source analysis across 172 rules "
+        "and 20+ CWE categories across Python, full-stack web files, and container configs "
+        "(.js, .ts, .jsx, .tsx, .php, .html, .env, Dockerfile, docker-compose.yml) "
         "plus 100-CVE knowledge base and 4-layer passive HTTP web surface auditing. "
         "Detection only - no exploitation."
     ),
@@ -108,6 +107,7 @@ def _analyzers() -> list:
         tamper_analyzer,
         logic_analyzer,
         cve_analyzer,
+        webfile_analyzer,
     ]
 
 
@@ -143,7 +143,7 @@ def _git_changed_files(root: Path | None = None) -> list[Path]:
             else:
                 rel_path = line.strip().strip('"')
             candidate = (target_dir / rel_path).resolve()
-            if candidate.suffix.lower() in engine.SOURCE_SUFFIXES and candidate.is_file():
+            if candidate.is_file() and engine._is_auditable_file(candidate):
                 if candidate not in seen:
                     seen.add(candidate)
                     files.append(candidate)

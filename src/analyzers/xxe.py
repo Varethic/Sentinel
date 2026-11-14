@@ -16,7 +16,9 @@ from src.core.engine import (
     Visitor,
     _call_name,
     _dotted_name,
+    _first_argument,
     _import_aliases,
+    _keyword_bool,
     _matches_module,
     _resolve_dotted,
 )
@@ -59,24 +61,9 @@ UNSAFE_DEFAULTS: dict[str, bool] = {
 }
 
 
-def _keyword_bool(node: ast.Call, name: str) -> bool | None:
-    """Return the boolean value of a keyword argument, or None if absent."""
-    for keyword in node.keywords:
-        if keyword.arg and keyword.arg.lower() == name.lower():
-            value = keyword.value
-            if isinstance(value, ast.Constant) and isinstance(value.value, bool):
-                return value.value
-    return None
-
-
 def _is_defused(node: ast.Call) -> bool:
     """Return True when the parser call resolves to defusedxml."""
     return "defusedxml" in _dotted_name(node.func).lower()
-
-
-def _first_argument(node: ast.Call) -> ast.AST | None:
-    """Return the first positional argument of a call, if any."""
-    return node.args[0] if node.args else None
 
 
 def _is_literal(node: ast.AST | None) -> bool:
