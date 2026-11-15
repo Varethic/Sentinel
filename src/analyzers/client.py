@@ -18,7 +18,7 @@ from src.core.engine import (
     SourceFile,
     Visitor,
 )
-from src.core.loader import Rule, _rules_for
+from src.core.loader import _rules_for
 
 ANALYZER_NAME: str = "client"
 
@@ -98,9 +98,7 @@ def _evaluate_tabnabbing_surface(
             display = href if len(href) <= 50 else href[:47] + "..."
             if display not in seen:
                 seen.add(display)
-                reasons.append(
-                    f"target=_blank link missing rel=noopener/noreferrer: {display}"
-                )
+                reasons.append(f"target=_blank link missing rel=noopener/noreferrer: {display}")
     return reasons
 
 
@@ -113,9 +111,7 @@ def _evaluate_client_storage_surface(script_contents: list[str]) -> list[str]:
         for token in found:
             if token not in seen:
                 seen.add(token)
-                reasons.append(
-                    f"inline script stores '{token}' in localStorage/sessionStorage"
-                )
+                reasons.append(f"inline script stores '{token}' in localStorage/sessionStorage")
     return reasons
 
 

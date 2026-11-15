@@ -122,6 +122,16 @@ class SqlVisitor(Visitor):
             self._assignments[node.target.id] = node.value
         self.generic_visit(node)
 
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        saved = dict(self._assignments)
+        self.generic_visit(node)
+        self._assignments = saved
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        saved = dict(self._assignments)
+        self.generic_visit(node)
+        self._assignments = saved
+
     def visit_Call(self, node: ast.Call) -> None:
         """Inspect every call whose name matches a configured SQL sink."""
         self._inspect(node)
@@ -130,7 +140,11 @@ class SqlVisitor(Visitor):
     def _resolve_argument(self, argument: ast.AST) -> ast.AST:
         visited: set[str] = set()
         current = argument
-        while isinstance(current, ast.Name) and current.id in self._assignments and current.id not in visited:
+        while (
+            isinstance(current, ast.Name)
+            and current.id in self._assignments
+            and current.id not in visited
+        ):
             visited.add(current.id)
             current = self._assignments[current.id]
         return current

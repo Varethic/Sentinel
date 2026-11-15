@@ -1,21 +1,36 @@
-MIT License
+SENTINEL DEFENSIVE SECURITY & ETHICAL RESEARCH LICENSE
+Version 1.0 (Strict Cybersecurity Covenants)
 
-Copyright (c) 2026 Varethic
+Copyright (c) 2026 Varethic and Sentinel Project Contributors.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+of this software and associated documentation files (the "Software"), to use,
+study, copy, modify, and distribute the Software, SUBJECT TO THE STRICT
+SECURITY COVENANTS AND CONDITIONS BELOW:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. DEFENSIVE & AUTHORIZED USE ONLY:
+   The Software is developed and released strictly for defensive security auditing,
+   vulnerability remediation, educational research, and authorized verification
+   of systems that the operator explicitly owns or has obtained prior written
+   authorization to assess.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. STRICT PROHIBITION ON UNLAWFUL & OFFENSIVE ATTACKS:
+   Under NO circumstances may the Software, in whole or in part, be used for:
+   (a) Unauthorized scanning, penetration testing, cyberattacks, or intrusion
+       against any computer system, network, or application without explicit authorization;
+   (b) Denial of service, resource exhaustion, or system disruption;
+   (c) Malicious exploitation, weaponization, or distribution of exploits;
+   (d) Any activity in violation of applicable local, national, or international
+       cybersecurity and computer crime laws (including without limitation the
+       Computer Fraud and Abuse Act, UK Computer Misuse Act, and Thailand Computer Crime Act).
+
+3. DISCLAIMER & LIMITATION OF LIABILITY:
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+   IN NO EVENT SHALL THE AUTHORS, COPYRIGHT HOLDERS, OR CONTRIBUTORS BE LIABLE
+   FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+   DAMAGES, REGULATORY PENALTIES, OR CRIMINAL LIABILITY ARISING FROM ANY
+   UNAUTHORIZED, NEGLIGENT, OR MALICIOUS USE OF THE SOFTWARE. THE ENTIRE RISK
+   AS TO THE OPERATION AND LEGAL COMPLIANCE RESTS SOLELY WITH THE OPERATOR.

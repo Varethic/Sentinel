@@ -90,9 +90,12 @@ def _disables_autoescape(node: ast.Call) -> bool:
 def _select_autoescape_disabled(node: ast.Call) -> bool:
     """Return True for select_autoescape(enabled_extensions=/default=False)."""
     for key, value in _call_keywords(node).items():
-        if key in {"default", "enabled"} and isinstance(value, ast.Constant):
-            if value.value is False:
-                return True
+        if (
+            key in {"default", "enabled"}
+            and isinstance(value, ast.Constant)
+            and value.value is False
+        ):
+            return True
     return False
 
 
@@ -171,9 +174,7 @@ class XssVisitor(Visitor):
         """Flag explicit auto-escaping opt-out and unsafe raw HTML sinks."""
         if _disables_autoescape(node) or _select_autoescape_disabled(node):
             return True
-        if name in {"safe"} and _has_dynamic_argument(node):
-            return True
-        return False
+        return name in {"safe"} and _has_dynamic_argument(node)
 
     def _check_xss004(self, rule: Rule, node: ast.Call, name: str) -> bool:
         """Flag HTML responses assembled from interpolated values."""

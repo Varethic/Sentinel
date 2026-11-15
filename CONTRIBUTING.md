@@ -132,8 +132,10 @@ Three categories are exempt:
   does: define an underscore-prefixed implementation and alias it to the required name.
 
 ```python
-def _starttag(self, tag, attrs): ...          # the real implementation
-handle_starttag = _starttag                   # alias required by HTMLParser
+def _starttag(self, tag, attrs): ...  # the real implementation
+
+
+handle_starttag = _starttag  # alias required by HTMLParser
 ```
 
 The same pattern is used for `.execute()` style shims elsewhere. Prefer an alias over

@@ -2,69 +2,156 @@
 
 # Sentinel
 
-**Defensive SAST & Passive HTTP Security Auditor**
+**Defensive Security Auditor & Vulnerability Assessment CLI**
 
-Static analysis of full-stack web and container sources for injection sinks and misconfigurations, plus deep passive security-header and surface auditing of live responses — with zero offensive capability.
+Preliminary security auditing, defensive gap analysis, passive HTTP header evaluation, and authorized active vulnerability assessment.
 
+[![Version](https://img.shields.io/badge/version-1.2-blue.svg)](changelog.md)
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Rules](https://img.shields.io/badge/rules-172-informational)](src/json)
-[![Scope](https://img.shields.io/badge/scope-defensive%20%2F%20passive-blue)](#safety-model)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-informational)](https://github.com/Varethic/Sentinel)
+[![License: Strict Security](https://img.shields.io/badge/license-Strict%20Defensive%20Security-red)](LICENSE)
+[![Scope](https://img.shields.io/badge/scope-defensive%20%2F%20authorized%20auditing-green)](#safety-model)
 
 </div>
 
 ---
 
-## 1. Overview
+## 1. Overview & Defensive Scope
 
-Sentinel answers one question about a web application: **does its code and its HTTP surface follow defensive security practice?**
+Sentinel answers one critical question: **Does a web application follow defensive security best practices and secure coding standards?**
 
-It operates in two complementary, strictly non-destructive ways:
+> [!IMPORTANT]
+> **Strictly for Authorized & Defensive Use Only:**
+> This tool performs preliminary security assessments and educational defensive research to help administrators and developers identify vulnerabilities and apply remediations before deployment. **Unauthorized scanning, offensive attacks, and malicious exploitation are strictly prohibited** under the terms of the Sentinel Strict Security License.
 
-| Capability | Mechanism | Input |
-|---|---|---|
-| **Static analysis (SAST)** | Python `ast` traversal plus pattern analysis across full-stack web & container files (`.py`, `.js`, `.ts`, `.jsx`, `.tsx`, `.php`, `.html`, `.env`, `Dockerfile`, `docker-compose.yml`) | local file or directory |
-| **Passive web surface audit** | Deep same-origin multi-page inspection (up to 25 pages) with inert reflection probing and passive CVE correlation | one operator-supplied URL |
+### Core Capabilities
 
-There is deliberately **no exploitation engine**: no offensive payload generation, no fuzzing, no brute forcing, and no mutating HTTP requests (`POST`/`PUT`/`DELETE`). Source is parsed or pattern-matched, never imported or executed. Web surface audits issue read-only `GET` requests to same-origin pages and inspect response metadata, security headers, cookies, and inert reflection canaries (`<sentinelprobe>`).
+* **Cross-Platform**: Full native support for **Linux**, **macOS**, and **Windows**.
+* **Zero-Configuration Interactive Mode**: Simply run `sentinel` to enter an interactive session.
+* **Continuous Scanning**: Audit one target, inspect findings, and press `Enter` to scan another target.
+* **Dual-Team Architecture**: Concurrently executes passive surface auditing (blue team) and active vulnerability probing (red team).
+* **Actionable Remediation Guidance**: Every identified gap is paired with concrete OWASP Top 10 (2021/2023) and CWE mitigation instructions.
+* **Static Source Analysis (SAST)**: 172 data-driven rules validated against Pydantic schemas.
 
-Detection logic is **data-driven**. Every rule — its OWASP category, CWE ID, severity, detection pattern, remediation example, reference CVE, and publication date — lives in a JSON document under `src/json/` and is validated with Pydantic at load time.
+---
 
-### Architecture
+## 2. Quickstart & Usage
+
+### Installation
+
+```bash
+git clone https://github.com/Varethic/Sentinel.git
+cd Sentinel
+python -m venv .venv
+
+# Activate venv:
+# Linux / macOS:
+source .venv/bin/activate
+# Windows:
+.venv\Scripts\activate
+
+pip install -e .
+```
+
+### CLI Commands
+
+Sentinel is intentionally simple and streamlined:
+
+```bash
+# 1. Interactive Mode (No arguments required)
+$ sentinel
+
+# 2. Direct Target Mode
+$ sentinel example.com
+
+# 3. Tool Info & Disclaimer
+$ sentinel --info
+
+# 4. Version Check
+$ sentinel --version
+```
+
+### Interactive Session Walkthrough
 
 ```text
-                                   ┌──────────────────────────────────────┐
-                                   │            sentinel CLI              │
-                                   │  sentinel <target> (url or path)     │
-                                   │  sentinel changed  (git changed)     │
-                                   │  sentinel audit-code <path>          │
-                                   │  sentinel audit-headers <url>        │
-                                   │  sentinel rules                      │
-                                   └───────────────┬──────────────────────┘
-                                                   │
-                        ┌──────────────────────────┴───────────────────────────┐
-                        │                      src/                            │
-                        │                                                      │
-   ┌────────────────────┴───────────────────┐     ┌────────────────────────────┴──┐
-   │  analyzers/   (detection)              │     │  core/   (plumbing)           │
-   │                                        │     │                               │
-   │  sqli.py, xss.py, cmdi.py,             │     │  engine.py                    │
-   │  traversal.py, secrets.py, ssrf.py,    │────▶│    Finding model              │
-   │  deserial.py, xxe.py, ssti.py, auth.py,│     │    Visitor base & suppressions│
-   │  redos.py, api.py, deps.py, host.py,   │     │    file traversal, dedupe     │
-   │  idor.py, cloud.py, client.py, tamper, │     │                               │
-   │  logic.py, cve.py, webfile.py          │     │  loader.py                    │
-   │                (AST & file analyzers)  │     │    Pydantic rule schema       │
-   │                                        │     │    cached JSON validation     │
-   │  headers.py   (deep passive web audit) │     │                               │
-   │        reads sinks, patterns,          │     │                               │
-   │        keywords at runtime             │◀────│                               │
-   └────────────────────┬───────────────────┘     └───────────────┬───────────────┘
-                        │                                         │
-                        │  findings                               │  rules
-                        ▼                                         ▼
-   ┌────────────────────────────────────┐          ┌──────────────────────────────┐
-   │  reporters/   (output)             │          │  json/   (rule data)         │
+╭────────────────── Sentinel Defensive Security Auditor v1.2 ──────────────────╮
+│ Preliminary audit & educational defense. Prohibits unauthorized attacks.      │
+╰───────────────────────────────────────────────────────────────────────────────╯
+
+Enter target domain or URL (or 'exit' to quit): example.com
+
+[■■■■■■■■■■■■■■■■■■■■] blue team (passive audit) 1/1 (0.8s)
+[■■■■■■■■■■■■■■■■■■■■] red team (active payloads) 1/1 (1.4s)
+
+                              Url Target : example.com                              
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Vulnerability                   ┃  Status  ┃ Endpoint                            ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ SQL Injection                   │   Pass   │ -                                   │
+│ Cross-Site Scripting (XSS)      │   Pass   │ -                                   │
+│ Command Injection               │   Pass   │ -                                   │
+│ Path Traversal (LFI)            │   Pass   │ -                                   │
+│ Server-Side Template Injection  │   Pass   │ -                                   │
+│ XML External Entity             │   Pass   │ -                                   │
+│ Server-Side Request Forgery     │   Pass   │ -                                   │
+│ Header Spoofing                 │   Pass   │ -                                   │
+│ CORS Misconfiguration           │   Pass   │ -                                   │
+│ JWT Broken Verification         │   Pass   │ -                                   │
+│ Mass Assignment                 │   Pass   │ -                                   │
+│ API Exposure / BOLA             │   Pass   │ -                                   │
+│ Insecure Deserialization        │   Pass   │ -                                   │
+│ DOM XSS                         │   Pass   │ -                                   │
+│ Open Redirect                   │   Pass   │ -                                   │
+│ Info Disclosure                 │   Pass   │ -                                   │
+│ Weak PRNG Token                 │   Pass   │ -                                   │
+│ HTTP Security Headers           │  Medium  │ Content-Security-Policy missing, ...│
+└─────────────────────────────────┴──────────┴─────────────────────────────────────┘
+
+╭──────────────── Remediation Guidance & Defensive Best Practices ────────────────╮
+│ HTTP Security Headers (CWE-693 / OWASP A05:2021)                                │
+│   • Fix: Configure Content-Security-Policy, HSTS, and X-Content-Type-Options.    │
+│   • Defense: Ensure all cookies include Secure, HttpOnly, and SameSite flags.   │
+╰─────────────────────────────────────────────────────────────────────────────────╯
+
+Press Enter to scan another target (or type 'exit' to quit)...
+```
+
+---
+
+## 3. Audited Vulnerability Categories
+
+All audit categories are referenced against authoritative cybersecurity standards:
+
+| Category | Reference | Core Mitigation |
+|---|---|---|
+| **SQL Injection** | CWE-89 / OWASP A03:2021 | Parameterized queries & prepared statements; avoid query string concatenation. |
+| **Cross-Site Scripting (XSS)** | CWE-79 / OWASP A03:2021 | Context-aware output encoding; enforce strict Content Security Policy (CSP). |
+| **Command Injection** | CWE-78 / OWASP A03:2021 | Avoid shell execution; pass argument arrays with `shell=False`. |
+| **Path Traversal (LFI)** | CWE-22 / OWASP A01:2021 | Canonical path verification; strict base directory validation. |
+| **SSTI** | CWE-1336 / OWASP A03:2021 | Isolate user data in template context variables; enable engine sandboxes. |
+| **XXE** | CWE-611 / OWASP A05:2021 | Disable XML external entity resolution and DTD processing. |
+| **SSRF** | CWE-918 / OWASP A10:2021 | Strict destination URL validation; block RFC 1918 and link-local IP ranges. |
+| **Header Spoofing** | CWE-345 / OWASP A07:2021 | Strip untrusted `X-Forwarded-*` headers at edge reverse proxies. |
+| **CORS Misconfiguration** | CWE-942 / OWASP A01:2021 | Reject wildcards on authenticated routes; allowlist trusted origins. |
+| **JWT Verification** | CWE-345 / OWASP A07:2021 | Explicit algorithm allowlists; reject the `none` algorithm. |
+| **Mass Assignment** | CWE-915 / OWASP API6:2023 | Explicit DTO/Schema validation; reject administrative attributes from clients. |
+| **BOLA / IDOR** | CWE-284 / OWASP API1:2023 | Object-level authorization checks validating caller identity against record ID. |
+| **Insecure Deserialization** | CWE-502 / OWASP A08:2021 | Use pure data serialization (JSON) with HMAC integrity validation. |
+| **DOM XSS** | CWE-79 / OWASP A03:2021 | Use safe DOM properties (`textContent`) or sanitize via DOMPurify. |
+| **Open Redirect** | CWE-601 / OWASP A01:2021 | Allowlist relative destination paths; validate external redirect domains. |
+| **Information Disclosure** | CWE-200 / OWASP A05:2021 | Suppress verbose error stack traces; block sensitive paths (`.git`, `.env`). |
+| **Weak PRNG Token** | CWE-330 / OWASP A02:2021 | Use cryptographically secure pseudorandom generators (`secrets` module). |
+| **Security Headers** | CWE-693 / OWASP A05:2021 | Deploy CSP, HSTS, X-Content-Type-Options, and secure cookie attributes. |
+
+---
+
+## 4. Safety Model & Legal Policy
+
+* **Educational & Defensive Scope**: Sentinel is designed solely to audit security posture and educate engineers on defensive remediations.
+* **Zero Telemetry**: No scan data, telemetry, or targets are transmitted anywhere outside the operator's machine.
+* **Cross-Platform Compatibility**: Tested and verified on Windows, Linux, and macOS.
+* **Strict Ethical License**: All usage is governed by the [LICENSE](LICENSE) which explicitly forbids unauthorized offensive use.
+
    │                                    │          │                              │
    │  terminal.py   Clean plain-text    │          │  22 rule documents           │
    │                terminal output with│          │  172 total security rules    │
@@ -83,6 +170,7 @@ Sentinel/
 ├── src/
 │   ├── core/{engine,loader}.py
 │   ├── analyzers/{sqli,xss,cmdi,traversal,secrets,ssrf,deserial,xxe,ssti,auth,redos,api,deps,host,idor,cloud,client,tamper,logic,cve,webfile,headers}.py
+│   ├── active/{__init__,discover,sqli}.py
 │   ├── json/{sqli,xss,cmdi,traversal,secrets,ssrf,deserial,xxe,ssti,auth,redos,api,deps,host,idor,cloud,client,tamper,logic,cve,webfile,headers,whitelist}.json
 │   ├── reporters/{terminal,json,sarif}.py
 │   └── cli.py
@@ -173,6 +261,40 @@ $ sentinel changed
 # Validate rule definitions
 $ sentinel rules
 ```
+
+### Active SQL Injection Verification (Opt-In)
+
+For your own lab or a target you are explicitly authorized to test, Sentinel can confirm injection rather than infer it. The command is gated: it refuses to run without `--i-own-this-target` and only talks to loopback, private, or lab-style hosts unless `--allow-public` is supplied.
+
+No parameter list is needed. The verifier reads the page, discovers GET forms, query-string links and login forms itself, then probes each parameter:
+
+```bash
+# One page: auto-discover parameters, probe them, and try the login form
+$ sentinel http://192.168.1.113:8000/labs/sqli --i-own-this-target
+
+# Site root: automatically crawls same-origin pages and tests every endpoint
+$ sentinel http://192.168.1.113:8000/ --i-own-this-target
+
+# Explicit parameter, login bypass, or machine-readable report
+$ sentinel verify-sqli http://lab.local/item --param id --i-own-this-target
+$ sentinel verify-sqli http://lab.local/login --login --i-own-this-target
+$ sentinel verify-sqli http://lab.local/item --i-own-this-target --json report.json
+```
+
+Output stays compact — one row per confirmed technique, plus a clean/vulnerable summary:
+
+```text
+Active SQLi  /labs/sqli  (1 page, 2 endpoints, 86 requests, 4.7s)
+
+CONFIRMED  POST /labs/sqli/login (login)  username (POST)  auth-bypass     flag captured
+CONFIRMED  GET /labs/sqli            q             boolean-based   rows 6 vs 2
+CONFIRMED  GET /labs/sqli            q             union-based     5 columns
+summary: 2 of 2 endpoints vulnerable · 6 confirmed
+```
+
+Pages that expose no GET parameter (POST/JS-only labs) are reported under `no params` so it is clear they were crawled but had nothing safe to inject into.
+
+The verifier sends a bounded number of read-only requests (`--budget`; auto 120 for one page, 3000 for a crawled site) with a polite delay (`--delay`). A site root (`/`) crawls automatically; pass `--no-crawl` to keep it to one page. It covers error-based disclosure, boolean inference (including single-pass keyword-filter bypass by keyword doubling), UNION projection with per-column markers, optional time-delay checks (`--time`), and login bypass. Only GET parameters and login forms are probed automatically; other POST forms (flag submission, reset, upload) are skipped so the run stays read-only. Use `--method POST --param NAME` to probe a specific POST field. Exit code `1` means at least one technique was confirmed, `0` means clean.
 
 ### Unified URL Check & Verdict Tiers
 
@@ -365,19 +487,22 @@ jobs:
 | `sentinel changed` | Audit only modified, staged, and untracked git files. |
 | `sentinel audit-code <path>` | Full-stack static analysis across Python, web, and container files. |
 | `sentinel audit-headers <url>` | Deep passive HTTP security header, cookie, and markup audit. |
+| `sentinel <url> --i-own-this-target [--crawl]` | Opt-in active SQL injection verification with automatic parameter discovery. |
+| `sentinel verify-sqli <url>` | Explicit form of the same command (`--param`, `--login`, `--json`, etc.). |
 | `sentinel rules [--show]` | Validate and list every loaded rule document with CWE, CVE, and date. |
 
-Common options: `--format cli|json|sarif`, `--output FILE`, `--fail-on none|low|medium|high|critical`, `--no-color`. URL commands support `--timeout SECONDS`, `--no-redirects`, `--deep/--no-deep`, `--probe/--no-probe`, and `--verbose`. `audit-code` supports `--changed` / `-c`, `--exclude DIR`, and `--quiet`.
+Common options: `--format cli|json|sarif`, `--output FILE`, `--fail-on none|low|medium|high|critical`, `--no-color`. URL commands support `--timeout SECONDS`, `--no-redirects`, `--deep/--no-deep`, `--probe/--no-probe`, and `--verbose`. `audit-code` supports `--changed` / `-c`, `--exclude DIR`, and `--quiet`. `verify-sqli` supports `--param/-p`, `--method GET|POST`, `--login`, `--user-field`, `--pass-field`, `--crawl`, `--no-crawl`, `--max-pages`, `--i-own-this-target` (required), `--allow-public`, `--budget`, `--delay`, `--timeout`, `--time`, `--verbose`, and `--json FILE`.
 
 ---
 
 ## 5. Safety Model & Legal Disclaimer
 
 * Static analysis parses source with `ast` or pattern matchers; it never imports, executes, or evaluates scanned code.
-* URL auditing sends ordinary read-only `GET` requests only. No payloads, no fuzzing, no brute force, and **no `POST`/`PUT`/`PATCH`/`DELETE`** — no remote state is ever mutated.
+* The passive URL audit sends ordinary read-only `GET` requests only. No payloads, no fuzzing, no brute force, and **no `POST`/`PUT`/`PATCH`/`DELETE`** — no remote state is ever mutated.
 * Deep inspection crawls up to **25 same-origin pages** (`MAX_PAGES = 25`, `MAX_DISCOVERED_LINKS = 100`) strictly matching the supplied scheme, host, and port.
 * Reflection probing uses inert text (`<sentinelprobe>` and an alphanumeric canary) placed only in query parameters already provided by the operator; it contains no quotes, scripts, or SQL metacharacters.
-* Polite `User-Agent` (`sentinel-auditor/<version>`) is sent with every request.
+* Active verification is a separate, opt-in command. It requires `--i-own-this-target`, restricts targets to loopback/private/lab-style hosts unless `--allow-public` is given, caps requests with `--budget`, spaces them with `--delay`, and sends only read-only SQL predicates (`AND`/`OR`/`UNION`/`LIKE`/delay functions). No `INSERT`, `UPDATE`, `DELETE`, `DROP`, stacked writes, file writes, or command execution are ever sent. Login checks submit a bounded list of credential payloads to the operator-specified form.
+* Polite `User-Agent` (`sentinel-auditor/<version>` for passive audits, `SentinelActive/0.1` for active probes) is sent with every request.
 * Zero telemetry — nothing is sent anywhere except the operator-specified URL.
 
 ### Legal Disclaimer

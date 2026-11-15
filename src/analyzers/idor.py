@@ -17,12 +17,10 @@ from src.core.engine import (
     Visitor,
     _call_arguments,
     _call_name,
-    _dotted_name,
     _has_auth_decorator,
     _is_route_decorator,
-    _string_value,
 )
-from src.core.loader import Rule, _rules_for
+from src.core.loader import _rules_for
 
 ANALYZER_NAME: str = "idor"
 
@@ -113,9 +111,7 @@ class IdorVisitor(Visitor):
         self._inspect_function(node)
         self.generic_visit(node)
 
-    def _inspect_function(
-        self, node: ast.FunctionDef | ast.AsyncFunctionDef
-    ) -> None:
+    def _inspect_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         """Evaluate a function for IDOR and sensitive unauthenticated routes."""
         is_route = False
         route_path = ""
@@ -126,18 +122,14 @@ class IdorVisitor(Visitor):
                 if path:
                     route_path = path
 
-        if not is_route and not any(
-            arg.arg.lower() in _ID_PARAM_NAMES for arg in node.args.args
-        ):
+        if not is_route and not any(arg.arg.lower() in _ID_PARAM_NAMES for arg in node.args.args):
             return
 
         self._check_idor_queries(node, is_route)
         if is_route and route_path:
             self._check_admin_auth(node, route_path)
 
-    def _check_admin_auth(
-        self, node: ast.FunctionDef | ast.AsyncFunctionDef, path: str
-    ) -> None:
+    def _check_admin_auth(self, node: ast.FunctionDef | ast.AsyncFunctionDef, path: str) -> None:
         """Flag sensitive admin or internal routes lacking authentication (IDR002)."""
         rule = self._rule("IDR002")
         if rule is None:
@@ -165,9 +157,7 @@ class IdorVisitor(Visitor):
             return
 
         param_names = {
-            arg.arg.lower()
-            for arg in node.args.args
-            if arg.arg.lower() in _ID_PARAM_NAMES
+            arg.arg.lower() for arg in node.args.args if arg.arg.lower() in _ID_PARAM_NAMES
         }
         if not param_names:
             return
@@ -187,21 +177,16 @@ class IdorVisitor(Visitor):
                     self._add(
                         rule.rule_id,
                         sub,
-                        MESSAGES["IDR001"].format(
-                            param=arg.id, sink=f"{method_name}()"
-                        ),
+                        MESSAGES["IDR001"].format(param=arg.id, sink=f"{method_name}()"),
                     )
                     return
                 if isinstance(arg, ast.keyword) and (
-                    isinstance(arg.value, ast.Name)
-                    and arg.value.id.lower() in param_names
+                    isinstance(arg.value, ast.Name) and arg.value.id.lower() in param_names
                 ):
                     self._add(
                         rule.rule_id,
                         sub,
-                        MESSAGES["IDR001"].format(
-                            param=arg.value.id, sink=f"{method_name}()"
-                        ),
+                        MESSAGES["IDR001"].format(param=arg.value.id, sink=f"{method_name}()"),
                     )
                     return
 

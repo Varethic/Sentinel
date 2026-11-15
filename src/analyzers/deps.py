@@ -98,8 +98,7 @@ class DepsVisitor(Visitor):
         if rule is None:
             return
         denylist = {
-            entry.lower()
-            for entry in (rule.patterns._strings("modules") or DEFAULT_DENYLIST)
+            entry.lower() for entry in (rule.patterns._strings("modules") or DEFAULT_DENYLIST)
         }
         for name in names:
             matched = _module_matches(name, denylist)
@@ -117,10 +116,7 @@ class DepsVisitor(Visitor):
         rule = self._rule("DEP002")
         if rule is None:
             return
-        protocols = {
-            entry
-            for entry in (rule.patterns._strings("attributes") or DEFAULT_PROTOCOLS)
-        }
+        protocols = {entry for entry in (rule.patterns._strings("attributes") or DEFAULT_PROTOCOLS)}
         if node.attr not in protocols:
             return
         owner = _dotted_name(node.value).lower()

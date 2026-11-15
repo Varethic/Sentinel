@@ -28,6 +28,16 @@ SEVERITY_ORDER: tuple[Severity, ...] = (
 
 SNIPPET_WIDTH: int = 52
 
+SEVERITY_WIDTH: int = 8
+RULE_WIDTH: int = 9
+CWE_WIDTH: int = 8
+CVE_WIDTH: int = 24
+LOCATION_MIN: int = 14
+LOCATION_MAX: int = 30
+LOCATION_MAX_NARROW: int = 22
+WIDE_CVE: int = 104
+WIDE_CWE: int = 88
+
 
 def _console(console: Console | None = None, no_color: bool = False) -> Console:
     """Return the console to render into."""
@@ -49,8 +59,17 @@ def _trim_snippet(snippet: str, width: int = SNIPPET_WIDTH) -> str:
     return text[: width - 3].rstrip() + "..."
 
 
-def _findings_table(findings: Sequence[Finding], title: str, header_mode: bool = False) -> Table:
-    """Build the main findings table."""
+def _findings_table(
+    findings: Sequence[Finding],
+    title: str,
+    header_mode: bool = False,
+    console: Console | None = None,
+) -> Table:
+    """Build the main findings table, dropping reference columns when narrow."""
+    width = (console or _console()).width
+    show_cwe = width >= WIDE_CWE
+    show_cve = width >= WIDE_CVE
+
     if header_mode:
         labels = [_header_label(finding) for finding in findings]
         caption = "HEADER"
@@ -59,9 +78,9 @@ def _findings_table(findings: Sequence[Finding], title: str, header_mode: bool =
         caption = "LOCATION"
 
     longest = max((len(label) for label in labels), default=len(caption))
-    location_width = max(len(caption), min(longest + 1, 44)) if header_mode else max(
-        14, min(longest + 1, 44)
-    )
+    location_floor = len(caption) if header_mode else LOCATION_MIN
+    location_cap = LOCATION_MAX if header_mode or show_cwe else LOCATION_MAX_NARROW
+    location_width = max(location_floor, min(longest + 1, location_cap))
 
     table = Table(
         title=title,
@@ -72,22 +91,27 @@ def _findings_table(findings: Sequence[Finding], title: str, header_mode: bool =
         pad_edge=False,
         expand=True,
     )
-    table.add_column("SEVERITY", no_wrap=True, width=9)
-    table.add_column("RULE", no_wrap=True, width=9)
+    table.add_column("SEVERITY", no_wrap=True, width=SEVERITY_WIDTH)
+    table.add_column("RULE", no_wrap=True, width=RULE_WIDTH)
     table.add_column(caption, no_wrap=True, overflow="ellipsis", width=location_width)
     table.add_column("FINDING", overflow="fold", ratio=3)
-    table.add_column("CWE", no_wrap=True, width=8)
-    table.add_column("CVE", no_wrap=True, width=26)
+    if show_cwe:
+        table.add_column("CWE", no_wrap=True, width=CWE_WIDTH)
+    if show_cve:
+        table.add_column("CVE", no_wrap=True, width=CVE_WIDTH)
 
     for finding, label in zip(findings, labels, strict=True):
-        table.add_row(
+        row = [
             _severity_text(finding.severity),
             Text(finding.rule_id, style="dim"),
             Text(label),
             Text(finding.message, overflow="fold"),
-            Text(finding.cwe_id, style="dim"),
-            Text(finding._cve_label(), style="dim"),
-        )
+        ]
+        if show_cwe:
+            row.append(Text(finding.cwe_id, style="dim"))
+        if show_cve:
+            row.append(Text(finding._cve_label(), style="dim"))
+        table.add_row(*row)
     return table
 
 
@@ -114,8 +138,13 @@ def _summary_panel(result: AnalysisResult | Sequence[Finding], source: str) -> P
             ),
         ]
         if result.errors:
-            lines.append(Text(f"  {len(result.errors)} file(s)/analyzer(s) could not be read "
-                              "(use --format json for details)", style="yellow"))
+            lines.append(
+                Text(
+                    f"  {len(result.errors)} file(s)/analyzer(s) could not be read "
+                    "(use --format json for details)",
+                    style="yellow",
+                )
+            )
     else:
         findings = list(result)
         counts = {level.value: 0 for level in Severity}
@@ -180,7 +209,7 @@ def _render_findings(
         )
         return
 
-    out.print(_findings_table(findings, title))
+    out.print(_findings_table(findings, title, console=out))
 
     remediation = _remediation_section(findings) if show_remediation else None
     if remediation is not None:
@@ -200,14 +229,15 @@ def _errors_panel(errors: Iterable[str]) -> Panel:
     return Panel(text, title="Analysis notices", border_style="yellow")
 
 
-def _render_exit_hint(blocking: int, console: Console | None = None, no_color: bool = False) -> None:
+def _render_exit_hint(
+    blocking: int, console: Console | None = None, no_color: bool = False
+) -> None:
     """Print the pass/fail verdict used by CI pipelines."""
     out = _console(console, no_color=no_color)
     if blocking:
         out.print(
             Text(
-                f"FAIL: {blocking} HIGH/CRITICAL finding(s) detected. "
-                "Remediate before shipping.",
+                f"FAIL: {blocking} HIGH/CRITICAL finding(s) detected. Remediate before shipping.",
                 style="bold white on red",
             )
         )
@@ -236,7 +266,11 @@ def _render_headers_report(
 
     if getattr(report, "whitelisted", False):
         out.print(Text.assemble(("URL : ", "bold"), (report.url, "")))
-        out.print(Text.assemble(("status : ", "bold"), ("WHITELISTED (domain matched allowlist)", "bold green")))
+        out.print(
+            Text.assemble(
+                ("status : ", "bold"), ("WHITELISTED (domain matched allowlist)", "bold green")
+            )
+        )
         return
 
     out.print(_summary_panel(list(report.findings), report.url))
@@ -257,8 +291,7 @@ def _render_headers_report(
         out.print(
             Panel(
                 Text(
-                    "No response could be audited; header checks were skipped. "
-                    "This is not a pass.",
+                    "No response could be audited; header checks were skipped. This is not a pass.",
                     style="bold red" if report.errors else "yellow",
                 ),
                 border_style="red" if report.errors else "yellow",
@@ -275,7 +308,9 @@ def _render_headers_report(
         )
         return
 
-    out.print(_findings_table(list(report.findings), "Header findings", header_mode=True))
+    out.print(
+        _findings_table(list(report.findings), "Header findings", header_mode=True, console=out)
+    )
     remediation = _remediation_section(list(report.findings))
     if remediation is not None:
         out.print(Panel(remediation, title="Remediation guidance", border_style="cyan"))
@@ -380,7 +415,11 @@ def _render_simple(
     out.print(Text.assemble(("URL : ", "bold"), (report.url, "")))
 
     if getattr(report, "whitelisted", False):
-        out.print(Text.assemble(("status : ", "bold"), ("WHITELISTED (domain matched allowlist)", "bold green")))
+        out.print(
+            Text.assemble(
+                ("status : ", "bold"), ("WHITELISTED (domain matched allowlist)", "bold green")
+            )
+        )
         return
 
     if _unreachable(report):
@@ -417,7 +456,11 @@ def _render_web_report(
     out.print(Text.assemble(("URL : ", "bold"), (report.url, "")))
 
     if getattr(report, "whitelisted", False):
-        out.print(Text.assemble(("status : ", "bold"), ("WHITELISTED (domain matched allowlist)", "bold green")))
+        out.print(
+            Text.assemble(
+                ("status : ", "bold"), ("WHITELISTED (domain matched allowlist)", "bold green")
+            )
+        )
         return
 
     if _unreachable(report):

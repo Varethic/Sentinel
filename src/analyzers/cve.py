@@ -11,7 +11,7 @@ import ast
 from collections.abc import Sequence
 from pathlib import Path
 
-from src.core.engine import Finding, SourceFile, Visitor, _call_name, _dotted_name
+from src.core.engine import Finding, SourceFile, Visitor
 from src.core.loader import Rule, _rules_for
 
 ANALYZER_NAME: str = "cve"
@@ -41,7 +41,8 @@ class CveVisitor(Visitor):
                     self._add(
                         rule_id,
                         node,
-                        f"Import of package '{name}' with known critical vulnerabilities ({rule_id})",
+                        f"Import of package '{name}' with known critical vulnerabilities "
+                        f"({rule_id})",
                     )
         self.generic_visit(node)
 
@@ -57,7 +58,8 @@ class CveVisitor(Visitor):
                     self._add(
                         rule_id,
                         node,
-                        f"Import from package '{mod}' with known critical vulnerabilities ({rule_id})",
+                        f"Import from package '{mod}' with known critical vulnerabilities "
+                        f"({rule_id})",
                     )
         self.generic_visit(node)
 
@@ -109,7 +111,7 @@ def _parse_constraint(description: str) -> tuple[str, str, str] | None:
     idx = description.lower().rfind("affects ")
     if idx == -1:
         return None
-    part = description[idx + len("affects "):].strip().rstrip(".")
+    part = description[idx + len("affects ") :].strip().rstrip(".")
     if "(" in part and ")" in part:
         pkg, _, rest = part.partition("(")
         pkg = pkg.strip().lower()
@@ -175,7 +177,11 @@ def _extract_product_versions(header_name: str, header_val: str) -> list[tuple[s
     if h_lower in ("x-jenkins", "x-aspnet-version", "x-runtime"):
         first_char = val[0] if val else ""
         if first_char.isdigit():
-            prod = "jenkins" if "jenkins" in h_lower else ("aspnet" if "aspnet" in h_lower else h_lower)
+            prod = (
+                "jenkins"
+                if "jenkins" in h_lower
+                else ("aspnet" if "aspnet" in h_lower else h_lower)
+            )
             v = val.split()[0].strip()
             return [(prod, v)]
 
@@ -246,8 +252,13 @@ def _framework_name(rule: Rule) -> str:
     pkg = rule.patterns._get("package", "")
     if name.startswith("Next.js") or str(pkg).lower() == "next":
         return "Next.js"
-    if "wordpress" in str(pkg).lower() or str(pkg).startswith("wp-") or any(
-        k in str(pkg) for k in ("backup-backup", "ultimate-member", "essential-addons", "bricks")
+    if (
+        "wordpress" in str(pkg).lower()
+        or str(pkg).startswith("wp-")
+        or any(
+            k in str(pkg)
+            for k in ("backup-backup", "ultimate-member", "essential-addons", "bricks")
+        )
     ):
         return "WordPress"
     if name.startswith("Atlassian Confluence"):
@@ -264,7 +275,11 @@ def _format_surface_advisory(rule: Rule, c_info: tuple[str, str, str] | None) ->
     fw = _framework_name(rule)
     if c_info:
         _, op, target_ver = c_info
-        verify_cond = f">= {target_ver}" if op == "<" else (f"!= {target_ver}" if op == "=" else f"> {target_ver}")
+        verify_cond = (
+            f">= {target_ver}"
+            if op == "<"
+            else (f"!= {target_ver}" if op == "=" else f"> {target_ver}")
+        )
         return f"detected {fw} framework surface (verify {fw} {verify_cond} for {rule.cve})"
     return f"detected {fw} framework surface for {rule.cve}"
 
@@ -322,14 +337,14 @@ def _match_stack_cves(
 
         vulnerable_match: tuple[Rule, str, bool] | None = None
         for hname, prod, ver in detected_versions:
-            if _match_product(prod, aliases):
-                if _version_matches(ver, op, target_ver):
-                    vulnerable_match = (
-                        rule,
-                        f"header '{hname}: {headers[hname]}' version {ver} matches {rule.cve} ({rule.name})",
-                        True,
-                    )
-                    break
+            if _match_product(prod, aliases) and _version_matches(ver, op, target_ver):
+                vulnerable_match = (
+                    rule,
+                    f"header '{hname}: {headers[hname]}' version {ver} matches "
+                    f"{rule.cve} ({rule.name})",
+                    True,
+                )
+                break
 
         if vulnerable_match:
             vulnerable_matches.append(vulnerable_match)
@@ -352,29 +367,38 @@ def _match_stack_cves(
                             True,
                         )
                         break
-                    elif not has_version:
-                        if not advisory_match:
-                            advisory = _format_surface_advisory(rule, c_info)
-                            advisory_match = (rule, advisory, _parse_version(target_ver))
-
-                if not has_version and probe in lowered_body and len(probe) > 6:
-                    if not advisory_match:
+                    elif not has_version and not advisory_match:
                         advisory = _format_surface_advisory(rule, c_info)
                         advisory_match = (rule, advisory, _parse_version(target_ver))
+
+                if (
+                    not has_version
+                    and probe in lowered_body
+                    and len(probe) > 6
+                    and not advisory_match
+                ):
+                    advisory = _format_surface_advisory(rule, c_info)
+                    advisory_match = (rule, advisory, _parse_version(target_ver))
 
         if vulnerable_match:
             vulnerable_matches.append(vulnerable_match)
             continue
 
-        if not advisory_match and not has_version:
-            if target_pkg in ("next", "express") or any(k in str(rule_hdrs).lower() for k in ("next", "express")):
-                for hname in ("x-powered-by", "server"):
-                    if hname in lowered_headers:
-                        hval_lower = lowered_headers[hname].lower()
-                        if any(a in hval_lower for a in aliases):
-                            advisory = _format_surface_advisory(rule, c_info)
-                            advisory_match = (rule, advisory, _parse_version(target_ver))
-                            break
+        if (
+            not advisory_match
+            and not has_version
+            and (
+                target_pkg in ("next", "express")
+                or any(k in str(rule_hdrs).lower() for k in ("next", "express"))
+            )
+        ):
+            for hname in ("x-powered-by", "server"):
+                if hname in lowered_headers:
+                    hval_lower = lowered_headers[hname].lower()
+                    if any(a in hval_lower for a in aliases):
+                        advisory = _format_surface_advisory(rule, c_info)
+                        advisory_match = (rule, advisory, _parse_version(target_ver))
+                        break
 
         if advisory_match:
             fw = _framework_name(rule)

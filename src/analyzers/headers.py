@@ -11,9 +11,9 @@ from __future__ import annotations
 import json
 import re
 import secrets
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from functools import lru_cache
 from html.parser import HTMLParser
 from pathlib import Path
@@ -367,9 +367,8 @@ def _check_cors_rule(rule: Rule, headers: dict[str, str], url: str) -> list[Find
             reasons.append(f"{origin_name}: {origin} combined with credentials")
         else:
             reasons.append(f"{origin_name}: {origin} allows any origin")
-    elif origin and origin_name in headers:
-        if credentials and not _is_static_origin(origin):
-            reasons.append(f"{origin_name} reflects an arbitrary origin with credentials")
+    elif origin and origin_name in headers and credentials and not _is_static_origin(origin):
+        reasons.append(f"{origin_name} reflects an arbitrary origin with credentials")
 
     if not reasons:
         return []
@@ -437,9 +436,7 @@ def _check_body_disclosure_rule(
     if not body:
         return []
     lowered = body.lower()
-    signatures = [
-        str(item).strip().lower() for item in rule.patterns._strings("signatures")
-    ]
+    signatures = [str(item).strip().lower() for item in rule.patterns._strings("signatures")]
     hits = [signature for signature in signatures if signature and signature in lowered]
     if not hits:
         return []
@@ -846,7 +843,7 @@ INLINE_SCRIPT_MARKERS: tuple[str, ...] = (
 )
 
 
-class Verdict(str, Enum):
+class Verdict(StrEnum):
     """Three-tier outcome for one URL audit category.
 
     ``VULNERABLE`` is reserved for confirmed, directly observable issues: an
@@ -1062,9 +1059,7 @@ def _has_unescaped_reflection(body: str, probe: str = REFLECTION_PROBE) -> bool:
     window = body[max(0, index - XSS_REFLECTION_WINDOW) : index + XSS_REFLECTION_WINDOW]
     lowered = window.lower()
     escaped_forms = ("&lt;", "&gt;", "&#", "\\u003c", "\\x3c", "%3c")
-    if any(marker in lowered for marker in escaped_forms):
-        return False
-    return True
+    return not any(marker in lowered for marker in escaped_forms)
 
 
 def _probe_url(url: str) -> str | None:
@@ -1176,9 +1171,7 @@ def _check_sqli_surface(headers: dict[str, str], body: str) -> CategoryResult:
     rule_ids: list[str] = []
 
     debug_headers = sorted(
-        name
-        for name in headers
-        if name in QUERY_DEBUG_HEADERS or name.startswith("x-debug-sql")
+        name for name in headers if name in QUERY_DEBUG_HEADERS or name.startswith("x-debug-sql")
     )
 
     lowered = body.lower()
@@ -1229,11 +1222,7 @@ def _check_cors_surface(headers: dict[str, str], body: str) -> CategoryResult:
 
     if body:
         lowered = body.lower()
-        traces = [
-            signature
-            for signature in DEBUG_BODY_SIGNATURES
-            if signature in lowered
-        ]
+        traces = [signature for signature in DEBUG_BODY_SIGNATURES if signature in lowered]
         if traces:
             confirmed_reasons.append(f"debug traceback ({traces[0]})")
             confirmed_rules.append("HDR012")
@@ -1279,10 +1268,12 @@ def _check_header_surface(headers: dict[str, str], cookies: list[str]) -> Catego
             weak_reasons.append(f"missing {label}")
             weak_rules.append(rule_id)
 
-    if "x-frame-options" not in headers:
-        if "frame-ancestors" in headers.get("content-security-policy", "").lower():
-            weak_reasons.remove("missing X-Frame-Options")
-            weak_rules.remove("HDR004")
+    if (
+        "x-frame-options" not in headers
+        and "frame-ancestors" in headers.get("content-security-policy", "").lower()
+    ):
+        weak_reasons.remove("missing X-Frame-Options")
+        weak_rules.remove("HDR004")
 
     banners = [name for name in ("server", "x-powered-by") if headers.get(name)]
     if banners:
@@ -1544,9 +1535,9 @@ def _new_canary() -> str:
 
 def _form_has_csrf_token(fields: list[dict[str, object]]) -> bool:
     """Return True when a form carries a recognisable anti-CSRF field."""
-    for field in fields:
-        name = str(field.get("name") or "").lower()
-        field_type = str(field.get("type") or "").lower()
+    for form_field in fields:
+        name = str(form_field.get("name") or "").lower()
+        field_type = str(form_field.get("type") or "").lower()
         if field_type != "hidden":
             continue
         if any(token in name for token in CSRF_FIELD_TOKENS):
@@ -1729,14 +1720,17 @@ def _inspect_html_surface(
         href = a.get("href", "").strip()
         target = a.get("target", "").lower().strip()
         rel = a.get("rel", "").lower().strip()
-        if target == "_blank" and (href.startswith("http://") or href.startswith("https://")):
-            if not _is_same_origin(href, base):
-                dest_host = urlparse(href).hostname or ""
-                if trusted_external and _is_whitelisted_host(dest_host, trusted_external):
-                    continue
-                if "noopener" not in rel and "noreferrer" not in rel:
-                    display = href if len(href) <= 45 else href[:42] + "..."
-                    tabnabbing.append(f"target=_blank external link missing rel=noopener: {display}")
+        if (
+            target == "_blank"
+            and (href.startswith("http://") or href.startswith("https://"))
+            and not _is_same_origin(href, base)
+        ):
+            dest_host = urlparse(href).hostname or ""
+            if trusted_external and _is_whitelisted_host(dest_host, trusted_external):
+                continue
+            if "noopener" not in rel and "noreferrer" not in rel:
+                display = href if len(href) <= 45 else href[:42] + "..."
+                tabnabbing.append(f"target=_blank external link missing rel=noopener: {display}")
 
     storage_leaks: list[str] = []
     for script_text in parser.inline_scripts:
@@ -1756,7 +1750,8 @@ def _inspect_html_surface(
                     fname = str(field.get("name", "")).lower()
                     if any(p in fname for p in _SENSITIVE_HIDDEN_PARAMS):
                         hidden_tampering.append(
-                            f"sensitive parameter '{fname}' in hidden form field without tamper protection (TMP002)"
+                            f"sensitive parameter '{fname}' in hidden form field "
+                            "without tamper protection (TMP002)"
                         )
 
     dom_xss: list[str] = []
@@ -1767,13 +1762,16 @@ def _inspect_html_surface(
             src in lowered_script for src in _DOM_SOURCES
         ):
             dom_xss.append(
-                "client-side DOM XSS sink in inline script: innerHTML/document.write with location source (DOM001)"
+                "client-side DOM XSS sink in inline script: innerHTML/document.write "
+                "with location source (DOM001)"
             )
-        if "addeventlistener('message'" in lowered_script or 'addeventlistener("message"' in lowered_script:
-            if "origin" not in lowered_script:
-                postmessage_leaks.append(
-                    "unvalidated postMessage message event listener in inline script (DOM002)"
-                )
+        if (
+            "addeventlistener('message'" in lowered_script
+            or 'addeventlistener("message"' in lowered_script
+        ) and "origin" not in lowered_script:
+            postmessage_leaks.append(
+                "unvalidated postMessage message event listener in inline script (DOM002)"
+            )
 
     sensitive_paths: list[str] = []
     all_links_and_sources = parser.links + [r.get("url", "") for r in parser.subresources]
@@ -1786,7 +1784,9 @@ def _inspect_html_surface(
 
     file_uploads: list[str] = []
     if parser.file_inputs:
-        file_uploads.append("file upload input present without MIME accept filter: " + ", ".join(parser.file_inputs))
+        file_uploads.append(
+            "file upload input present without MIME accept filter: " + ", ".join(parser.file_inputs)
+        )
 
     sqli_surface: list[str] = []
     lowered_doc = body.lower()
@@ -1796,7 +1796,9 @@ def _inspect_html_surface(
             break
     for marker in ("executed statement:", "executed query:", "database query:"):
         if marker in lowered_doc:
-            sqli_surface.append(f"disclosed backend database query execution ({marker.rstrip(':')})")
+            sqli_surface.append(
+                f"disclosed backend database query execution ({marker.rstrip(':')})"
+            )
             break
 
     return {
@@ -1909,7 +1911,9 @@ def _canary_reflection(
         body = _body_text(response)
         if surfaces is not None and body:
             probe_is_https = urlparse(probe_url).scheme.lower() == "https"
-            surfaces.append(_inspect_html_surface(body, probe_url, probe_is_https, trusted_external))
+            surfaces.append(
+                _inspect_html_surface(body, probe_url, probe_is_https, trusted_external)
+            )
         if body and _has_unescaped_reflection(body, REFLECTION_PROBE):
             return True
     return False
@@ -1959,7 +1963,16 @@ def _check_stack_surface(
         for reason in surface_reasons:
             if reason not in reasons:
                 reasons.append(reason)
-                if any(critical_marker in reason for critical_marker in ("/.git/", "/.env", "/phpinfo.php", "remote_agent.php", "GetPhpInfo.php")):
+                if any(
+                    critical_marker in reason
+                    for critical_marker in (
+                        "/.git/",
+                        "/.env",
+                        "/phpinfo.php",
+                        "remote_agent.php",
+                        "GetPhpInfo.php",
+                    )
+                ):
                     has_critical = True
 
     if has_critical:
@@ -2038,7 +2051,9 @@ def _audit_web(
     trusted_external = whitelist.get("trusted_external_links", [])
 
     page_is_https = urlparse(final_url).scheme.lower() == "https"
-    surfaces: list[dict[str, list[str]]] = [_inspect_html_surface(body, final_url, page_is_https, trusted_external)]
+    surfaces: list[dict[str, list[str]]] = [
+        _inspect_html_surface(body, final_url, page_is_https, trusted_external)
+    ]
     visited: list[str] = [final_url]
 
     if deep and body:
@@ -2063,22 +2078,23 @@ def _audit_web(
                 continue
             visited.append(str(page.url))
             page_https = urlparse(str(page.url)).scheme.lower() == "https"
-            surfaces.append(_inspect_html_surface(page_body, str(page.url), page_https, trusted_external))
+            surfaces.append(
+                _inspect_html_surface(page_body, str(page.url), page_https, trusted_external)
+            )
 
     reflection_raw = False
     if probe and body:
-        reflection_raw = _canary_reflection(final_url, client, timeout, deep, visited, surfaces, trusted_external)
+        reflection_raw = _canary_reflection(
+            final_url, client, timeout, deep, visited, surfaces, trusted_external
+        )
 
     xss_surface_reasons = _surface_reasons(surfaces, CATEGORY_XSS)
     sqli_surface_reasons = _surface_reasons(surfaces, CATEGORY_SQLI)
-    csrf_reasons = _surface_reasons(surfaces, "csrf")
     header_reasons = _surface_reasons(surfaces, CATEGORY_HEADERS)
     stack_surface_reasons = _surface_reasons(surfaces, CATEGORY_STACK)
 
     has_password_form = any(
-        "password input" in reason
-        for s in surfaces
-        for reason in s.get(CATEGORY_HEADERS, [])
+        "password input" in reason for s in surfaces for reason in s.get(CATEGORY_HEADERS, [])
     )
     if has_password_form:
         rate_limit_hdrs = ("x-ratelimit-limit", "ratelimit-limit", "retry-after")
@@ -2179,14 +2195,11 @@ def _build_web_report(
         final_url=target,
         status_code=status_code,
         categories=categories,
-        findings=tuple(
-            _evaluate(_rules_for(ANALYZER_NAME), lowered, cookie_values, target, body)
-        ),
+        findings=tuple(_evaluate(_rules_for(ANALYZER_NAME), lowered, cookie_values, target, body)),
         errors=(),
         present_headers=tuple(sorted(lowered)),
         cookie_count=len(cookie_values),
     )
-
 
 
 def _name() -> str:

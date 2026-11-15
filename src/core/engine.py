@@ -10,7 +10,7 @@ from __future__ import annotations
 import ast
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Protocol
 
@@ -206,9 +206,10 @@ class Visitor(ast.NodeVisitor):
         if rule is None:
             return
         lineno = getattr(node, "lineno", 0) or 0
-        if 1 <= lineno <= len(self._target.lines):
-            if _is_suppressed_line(self._target.lines[lineno - 1]):
-                return
+        if 1 <= lineno <= len(self._target.lines) and _is_suppressed_line(
+            self._target.lines[lineno - 1]
+        ):
+            return
         self.findings.append(
             Finding(
                 rule_id=rule.rule_id,
@@ -233,7 +234,7 @@ class Visitor(ast.NodeVisitor):
         return self.findings
 
 
-class DynamicKind(str, Enum):
+class DynamicKind(StrEnum):
     """Categories of dynamic string construction detected in an expression."""
 
     FSTRING = "fstring"
@@ -468,7 +469,7 @@ def _guarded_names(
             continue
         for test in ast.walk(child.test):
             if isinstance(test, ast.Compare):
-                for op, comparator in zip(test.ops, test.comparators):
+                for op, comparator in zip(test.ops, test.comparators, strict=False):
                     if not isinstance(op, (ast.In, ast.NotIn)):
                         continue
                     if not isinstance(test.left, ast.Name):
@@ -545,9 +546,8 @@ def _mentions_guard(node: ast.AST, tokens: Iterable[str] = ()) -> bool:
             name = _normalize_name(_call_name(child))
             if any(token and token in name for token in wanted):
                 return True
-        elif isinstance(child, ast.Name):
-            if _normalize_name(child.id) in wanted:
-                return True
+        elif isinstance(child, ast.Name) and _normalize_name(child.id) in wanted:
+            return True
     return False
 
 
@@ -650,7 +650,7 @@ def _is_guarded_scope(
     guard_calls: Iterable[str] = (),
     guard_tokens: Iterable[str] = (),
 ) -> bool:
-    """Return True when an argument in a call is validated by an allow-list in the enclosing scope."""
+    """Return True when an argument is validated by an allow-list in the enclosing scope."""
     guarded = _guarded_names(tree, call, guard_calls=guard_calls, guard_tokens=guard_tokens)
     return _uses_only_guarded_names(argument, guarded)
 
@@ -817,9 +817,7 @@ def _run_analyzers_on_files(
 ) -> AnalysisResult:
     """Run every analyzer over an explicit sequence of source file paths."""
     scan_root = root.expanduser().resolve() if root is not None else Path.cwd().resolve()
-    rules_by_analyzer = {
-        analyzer._name(): _rules_for(analyzer._name()) for analyzer in analyzers
-    }
+    rules_by_analyzer = {analyzer._name(): _rules_for(analyzer._name()) for analyzer in analyzers}
 
     findings: list[Finding] = []
     errors: list[str] = []
@@ -843,9 +841,10 @@ def _run_analyzers_on_files(
             try:
                 raw_findings = analyzer._analyze(source_file)
                 for finding in raw_findings:
-                    if 1 <= finding.line_number <= len(source_file.lines):
-                        if _is_suppressed_line(source_file.lines[finding.line_number - 1]):
-                            continue
+                    if 1 <= finding.line_number <= len(source_file.lines) and (
+                        _is_suppressed_line(source_file.lines[finding.line_number - 1])
+                    ):
+                        continue
                     findings.append(finding)
             except (SyntaxError, ValueError, RecursionError) as exc:
                 errors.append(f"{source_file.display_path}: analyzer {name} failed: {exc}")

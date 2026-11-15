@@ -6,8 +6,6 @@ environment files (.env), Dockerfiles, and Docker Compose configurations.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from src.core.engine import Finding, SourceFile, _is_suppressed_line
 from src.core.loader import Rule, _rules_for
 
@@ -80,9 +78,7 @@ def _is_placeholder_secret(value: str) -> bool:
         return True
     if val.startswith("<") and val.endswith(">"):
         return True
-    if val.startswith("process.env.") or val.startswith("getenv("):
-        return True
-    return False
+    return val.startswith("process.env.") or val.startswith("getenv(")
 
 
 def _check_dom_xss(target: SourceFile, rule: Rule) -> list[Finding]:
@@ -147,7 +143,12 @@ def _check_secrets(target: SourceFile, rule: Rule) -> list[Finding]:
 
     is_env = ext == ".env" or filename.startswith(".env")
     is_docker = filename == "dockerfile" or filename.startswith("dockerfile.")
-    is_compose = filename in {"docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"}
+    is_compose = filename in {
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        "compose.yml",
+        "compose.yaml",
+    }
     is_code = ext in {".js", ".ts", ".jsx", ".tsx", ".php"}
 
     if not (is_env or is_docker or is_compose or is_code):
@@ -165,25 +166,27 @@ def _check_secrets(target: SourceFile, rule: Rule) -> list[Finding]:
                 key, _, val = stripped.partition("=")
                 k_clean = key.strip().lower().replace("export ", "")
                 v_clean = val.strip().strip("'\"`")
-                if any(kw in k_clean for kw in _SECRET_KEYWORDS):
-                    if not _is_placeholder_secret(v_clean) and len(v_clean) >= 6:
-                        findings.append(
-                            Finding(
-                                rule_id=rule.rule_id,
-                                rule_name=rule.name,
-                                severity=rule.severity,
-                                category=rule.category,
-                                cwe_id=rule.cwe_id,
-                                cve=rule.cve,
-                                cve_date=rule.cve_date,
-                                file_path=target.display_path,
-                                line_number=lineno,
-                                column=1,
-                                code_snippet=_snippet_text(line),
-                                message=f"Hardcoded credential '{key.strip()}' committed in environment file",
-                                remediation=rule.remediation_example,
-                            )
+                if any(kw in k_clean for kw in _SECRET_KEYWORDS) and (
+                    not _is_placeholder_secret(v_clean) and len(v_clean) >= 6
+                ):
+                    findings.append(
+                        Finding(
+                            rule_id=rule.rule_id,
+                            rule_name=rule.name,
+                            severity=rule.severity,
+                            category=rule.category,
+                            cwe_id=rule.cwe_id,
+                            cve=rule.cve,
+                            cve_date=rule.cve_date,
+                            file_path=target.display_path,
+                            line_number=lineno,
+                            column=1,
+                            code_snippet=_snippet_text(line),
+                            message=f"Hardcoded credential '{key.strip()}' "
+                            "committed in environment file",
+                            remediation=rule.remediation_example,
                         )
+                    )
 
         elif is_docker:
             lowered = stripped.lower()
@@ -193,25 +196,26 @@ def _check_secrets(target: SourceFile, rule: Rule) -> list[Finding]:
                 key, _, val = remainder.partition(sep)
                 k_clean = key.strip().lower()
                 v_clean = val.strip().strip("'\"`")
-                if any(kw in k_clean for kw in _SECRET_KEYWORDS):
-                    if not _is_placeholder_secret(v_clean) and len(v_clean) >= 6:
-                        findings.append(
-                            Finding(
-                                rule_id=rule.rule_id,
-                                rule_name=rule.name,
-                                severity=rule.severity,
-                                category=rule.category,
-                                cwe_id=rule.cwe_id,
-                                cve=rule.cve,
-                                cve_date=rule.cve_date,
-                                file_path=target.display_path,
-                                line_number=lineno,
-                                column=1,
-                                code_snippet=_snippet_text(line),
-                                message=f"Hardcoded secret in Dockerfile instruction: '{key.strip()}'",
-                                remediation=rule.remediation_example,
-                            )
+                if any(kw in k_clean for kw in _SECRET_KEYWORDS) and (
+                    not _is_placeholder_secret(v_clean) and len(v_clean) >= 6
+                ):
+                    findings.append(
+                        Finding(
+                            rule_id=rule.rule_id,
+                            rule_name=rule.name,
+                            severity=rule.severity,
+                            category=rule.category,
+                            cwe_id=rule.cwe_id,
+                            cve=rule.cve,
+                            cve_date=rule.cve_date,
+                            file_path=target.display_path,
+                            line_number=lineno,
+                            column=1,
+                            code_snippet=_snippet_text(line),
+                            message=f"Hardcoded secret in Dockerfile instruction: '{key.strip()}'",
+                            remediation=rule.remediation_example,
                         )
+                    )
 
         elif is_compose:
             sep = "=" if "=" in stripped else (":" if ":" in stripped else None)
@@ -219,8 +223,41 @@ def _check_secrets(target: SourceFile, rule: Rule) -> list[Finding]:
                 raw_k, _, raw_v = stripped.lstrip("- ").partition(sep)
                 k_clean = raw_k.strip().lower()
                 v_clean = raw_v.strip().strip("'\"`")
-                if any(kw in k_clean for kw in _SECRET_KEYWORDS):
-                    if not _is_placeholder_secret(v_clean) and len(v_clean) >= 6:
+                if any(kw in k_clean for kw in _SECRET_KEYWORDS) and (
+                    not _is_placeholder_secret(v_clean) and len(v_clean) >= 6
+                ):
+                    findings.append(
+                        Finding(
+                            rule_id=rule.rule_id,
+                            rule_name=rule.name,
+                            severity=rule.severity,
+                            category=rule.category,
+                            cwe_id=rule.cwe_id,
+                            cve=rule.cve,
+                            cve_date=rule.cve_date,
+                            file_path=target.display_path,
+                            line_number=lineno,
+                            column=1,
+                            code_snippet=_snippet_text(line),
+                            message=f"Hardcoded credential '{raw_k.strip()}' "
+                            "in docker-compose environment",
+                            remediation=rule.remediation_example,
+                        )
+                    )
+
+        elif is_code:
+            sep = "=" if "=" in stripped else (":" if ":" in stripped else None)
+            if sep:
+                left, _, right = stripped.partition(sep)
+                left_clean = left.strip().lower()
+                right_clean = right.strip()
+                if any(kw in left_clean for kw in _SECRET_KEYWORDS) and (
+                    (right_clean.startswith('"') and '"' in right_clean[1:])
+                    or (right_clean.startswith("'") and "'" in right_clean[1:])
+                ):
+                    quote = right_clean[0]
+                    secret_val = right_clean[1:].split(quote, 1)[0]
+                    if not _is_placeholder_secret(secret_val) and len(secret_val) >= 8:
                         findings.append(
                             Finding(
                                 rule_id=rule.rule_id,
@@ -234,41 +271,10 @@ def _check_secrets(target: SourceFile, rule: Rule) -> list[Finding]:
                                 line_number=lineno,
                                 column=1,
                                 code_snippet=_snippet_text(line),
-                                message=f"Hardcoded credential '{raw_k.strip()}' in docker-compose environment",
+                                message=f"Hardcoded secret literal assigned to '{left.strip()}'",
                                 remediation=rule.remediation_example,
                             )
                         )
-
-        elif is_code:
-            sep = "=" if "=" in stripped else (":" if ":" in stripped else None)
-            if sep:
-                left, _, right = stripped.partition(sep)
-                left_clean = left.strip().lower()
-                right_clean = right.strip()
-                if any(kw in left_clean for kw in _SECRET_KEYWORDS):
-                    if (right_clean.startswith('"') and '"' in right_clean[1:]) or (
-                        right_clean.startswith("'") and "'" in right_clean[1:]
-                    ):
-                        quote = right_clean[0]
-                        secret_val = right_clean[1:].split(quote, 1)[0]
-                        if not _is_placeholder_secret(secret_val) and len(secret_val) >= 8:
-                            findings.append(
-                                Finding(
-                                    rule_id=rule.rule_id,
-                                    rule_name=rule.name,
-                                    severity=rule.severity,
-                                    category=rule.category,
-                                    cwe_id=rule.cwe_id,
-                                    cve=rule.cve,
-                                    cve_date=rule.cve_date,
-                                    file_path=target.display_path,
-                                    line_number=lineno,
-                                    column=1,
-                                    code_snippet=_snippet_text(line),
-                                    message=f"Hardcoded secret literal assigned to '{left.strip()}'",
-                                    remediation=rule.remediation_example,
-                                )
-                            )
     return findings
 
 
@@ -300,7 +306,8 @@ def _check_php_rce(target: SourceFile, rule: Rule) -> list[Finding]:
                             line_number=lineno,
                             column=1,
                             code_snippet=_snippet_text(line),
-                            message=f"Direct execution of PHP superglobal request parameter in shell/eval sink ({sink})",
+                            message=f"Direct execution of PHP superglobal request parameter "
+                            f"in shell/eval sink ({sink})",
                             remediation=rule.remediation_example,
                         )
                     )
@@ -319,7 +326,8 @@ def _check_php_rce(target: SourceFile, rule: Rule) -> list[Finding]:
                             line_number=lineno,
                             column=1,
                             code_snippet=_snippet_text(line),
-                            message=f"Dynamic variable passed to PHP shell/eval sink ({sink}) without visible escaping",
+                            message=f"Dynamic variable passed to PHP shell/eval sink ({sink}) "
+                            "without visible escaping",
                             remediation=rule.remediation_example,
                         )
                     )
@@ -363,30 +371,31 @@ def _check_dockerfile_privilege(target: SourceFile, rule: Rule) -> list[Finding]
                         line_number=lineno,
                         column=1,
                         code_snippet=_snippet_text(line),
-                        message="Dockerfile explicitly sets container execution user to 'USER root'",
+                        message="Dockerfile explicitly sets container execution "
+                        "user to 'USER root'",
                         remediation=rule.remediation_example,
                     )
                 )
 
-    if has_from and (last_user is None or last_user in {"root", "0"}):
-        if not root_user_lineno:
-            findings.append(
-                Finding(
-                    rule_id=rule.rule_id,
-                    rule_name=rule.name,
-                    severity=rule.severity,
-                    category=rule.category,
-                    cwe_id=rule.cwe_id,
-                    cve=rule.cve,
-                    cve_date=rule.cve_date,
-                    file_path=target.display_path,
-                    line_number=1,
-                    column=1,
-                    code_snippet=_snippet_text(target.lines[0]) if target.lines else "",
-                    message="Dockerfile does not declare a non-root USER instruction; container processes run as root by default",
-                    remediation=rule.remediation_example,
-                )
+    if has_from and (last_user is None or last_user in {"root", "0"}) and not root_user_lineno:
+        findings.append(
+            Finding(
+                rule_id=rule.rule_id,
+                rule_name=rule.name,
+                severity=rule.severity,
+                category=rule.category,
+                cwe_id=rule.cwe_id,
+                cve=rule.cve,
+                cve_date=rule.cve_date,
+                file_path=target.display_path,
+                line_number=1,
+                column=1,
+                code_snippet=_snippet_text(target.lines[0]) if target.lines else "",
+                message="Dockerfile does not declare a non-root USER instruction; "
+                "container processes run as root by default",
+                remediation=rule.remediation_example,
             )
+        )
 
     return findings
 
@@ -420,7 +429,8 @@ def _check_dockerfile_images(target: SourceFile, rule: Rule) -> list[Finding]:
                     line_number=lineno,
                     column=1,
                     code_snippet=_snippet_text(line),
-                    message="Insecure remote file download via 'ADD http(s)://'; use COPY or curl with checksum verification",
+                    message="Insecure remote file download via 'ADD http(s)://'; "
+                    "use COPY or curl with checksum verification",
                     remediation=rule.remediation_example,
                 )
             )
@@ -452,7 +462,8 @@ def _check_dockerfile_images(target: SourceFile, rule: Rule) -> list[Finding]:
                             line_number=lineno,
                             column=1,
                             code_snippet=_snippet_text(line),
-                            message=f"Unpinned base image '{image}' in FROM instruction; pin to an immutable tag or digest",
+                            message=f"Unpinned base image '{image}' in FROM instruction; "
+                            "pin to an immutable tag or digest",
                             remediation=rule.remediation_example,
                         )
                     )

@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import json
 from datetime import date
-from enum import Enum
-from functools import lru_cache
+from enum import StrEnum
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -26,7 +26,7 @@ from pydantic import (
 RULE_DIRECTORY: Path = Path(__file__).resolve().parent.parent / "json"
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     """Ordered severity levels used for reporting and exit codes."""
 
     LOW = "LOW"
@@ -218,7 +218,7 @@ def _resolve_path(name: str, directory: Path | None = None) -> Path:
     return candidate
 
 
-@lru_cache(maxsize=None)
+@cache
 def _cached_ruleset(name: str) -> RuleSet:
     """Cached loader so repeated scans do not re-parse JSON documents."""
     return _load_ruleset(_resolve_path(name))
@@ -279,8 +279,7 @@ def _validate_all(directory: Path | None = None) -> list[str]:
     for analyzer, ruleset in _load_all(directory).items():
         enabled = len(ruleset._enabled_rules())
         summaries.append(
-            f"{analyzer}: {len(ruleset.rules)} rules ({enabled} enabled) "
-            f"v{ruleset.schema_version}"
+            f"{analyzer}: {len(ruleset.rules)} rules ({enabled} enabled) v{ruleset.schema_version}"
         )
     return summaries
 
@@ -290,4 +289,3 @@ def _to_dict(rule: Rule) -> dict[str, Any]:
     data = rule.model_dump(mode="json")
     data["severity"] = rule.severity.value
     return data
-

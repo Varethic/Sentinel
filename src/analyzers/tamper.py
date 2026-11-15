@@ -11,7 +11,6 @@ source text and passive response markup.
 from __future__ import annotations
 
 import ast
-from collections.abc import Sequence
 
 from src.core.engine import (
     SourceFile,
@@ -22,7 +21,7 @@ from src.core.engine import (
     _is_route_decorator,
     _string_value,
 )
-from src.core.loader import Rule, _rules_for
+from src.core.loader import _rules_for
 
 ANALYZER_NAME: str = "tamper"
 
@@ -43,9 +42,7 @@ MESSAGES: dict[str, str] = {
         "handler reads query parameter '{param}' without verifying multiplicity; "
         "vulnerable to HTTP parameter pollution"
     ),
-    "TMP005": (
-        "hidden form field '{field}' reflects client state without cryptographic signature"
-    ),
+    "TMP005": ("hidden form field '{field}' reflects client state without cryptographic signature"),
 }
 
 _AUTH_ROUTE_KEYWORDS: frozenset[str] = frozenset(
@@ -95,7 +92,8 @@ def _evaluate_tamper_surface(
         has_rate_header = any(hdr in lowered_headers for hdr in _RATE_LIMIT_HEADERS)
         if not has_rate_header:
             reasons.append(
-                "login/password form served without rate-limit headers (X-RateLimit-Limit, Retry-After)"
+                "login/password form served without rate-limit headers "
+                "(X-RateLimit-Limit, Retry-After)"
             )
 
     for form in forms:
@@ -109,7 +107,8 @@ def _evaluate_tamper_surface(
             fname = str(field.get("name") or "").lower()
             if ftype == "hidden" and any(param in fname for param in _SENSITIVE_PARAM_NAMES):
                 reasons.append(
-                    f"sensitive parameter '{fname}' exposed in hidden form field without tamper protection"
+                    f"sensitive parameter '{fname}' exposed in hidden form field "
+                    "without tamper protection"
                 )
 
     return reasons
@@ -133,9 +132,7 @@ class TamperVisitor(Visitor):
         self._inspect_request_call(node)
         self.generic_visit(node)
 
-    def _inspect_handler(
-        self, node: ast.FunctionDef | ast.AsyncFunctionDef
-    ) -> None:
+    def _inspect_handler(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         """Evaluate route handlers for missing rate limits and verb tampering."""
         is_route = False
         route_path = ""
@@ -195,9 +192,7 @@ class TamperVisitor(Visitor):
             self._add(
                 rule.rule_id,
                 node,
-                MESSAGES["TMP003"].format(
-                    header="methods=['GET', ...]", path=path
-                ),
+                MESSAGES["TMP003"].format(header="methods=['GET', ...]", path=path),
             )
 
     def _inspect_request_call(self, node: ast.Call) -> None:
@@ -221,9 +216,7 @@ class TamperVisitor(Visitor):
                 self._add(
                     rule.rule_id,
                     node,
-                    MESSAGES["TMP003"].format(
-                        header=val, path=_call_name(node)
-                    ),
+                    MESSAGES["TMP003"].format(header=val, path=_call_name(node)),
                 )
                 return
 
@@ -248,9 +241,7 @@ class TamperVisitor(Visitor):
                 self._add(
                     rule.rule_id,
                     node,
-                    MESSAGES["TMP002"].format(
-                        param=val, sink=_call_name(node)
-                    ),
+                    MESSAGES["TMP002"].format(param=val, sink=_call_name(node)),
                 )
                 return
 

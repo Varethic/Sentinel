@@ -17,9 +17,8 @@ from urllib.parse import urlparse
 from src.core.engine import (
     SourceFile,
     Visitor,
-    _string_value,
 )
-from src.core.loader import Rule, _rules_for
+from src.core.loader import _rules_for
 
 ANALYZER_NAME: str = "cloud"
 

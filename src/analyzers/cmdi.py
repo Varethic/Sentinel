@@ -226,11 +226,10 @@ class CmdiVisitor(Visitor):
             return False
         if isinstance(argument, ast.Call) and _call_name(argument) in SAFE_EVAL_WRAPPERS:
             return False
-        if isinstance(argument, ast.JoinedStr) and all(
-            isinstance(value, ast.Constant) for value in argument.values
-        ):
-            return False
-        return True
+        return not (
+            isinstance(argument, ast.JoinedStr)
+            and all(isinstance(value, ast.Constant) for value in argument.values)
+        )
 
 
 def _name() -> str:

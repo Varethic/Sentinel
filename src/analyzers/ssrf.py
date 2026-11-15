@@ -191,9 +191,7 @@ class SsrfVisitor(Visitor):
                         self._add(
                             rule.rule_id,
                             node,
-                            MESSAGES["SSRF002"].format(
-                                sink=_call_name(node), host=host
-                            ),
+                            MESSAGES["SSRF002"].format(sink=_call_name(node), host=host),
                         )
                         return True
         return False

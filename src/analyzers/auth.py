@@ -18,7 +18,7 @@ from src.core.engine import (
     _call_name,
     _dotted_name,
 )
-from src.core.loader import Rule, _rules_for
+from src.core.loader import _rules_for
 
 ANALYZER_NAME: str = "auth"
 
@@ -41,17 +41,13 @@ HTTP_MODULES: frozenset[str] = frozenset(
     {"requests", "httpx", "aiohttp", "urllib3", "http", "urllib"}
 )
 
-JWT_MODULES: frozenset[str] = frozenset(
-    {"jwt", "jose", "python_jose", "jwcrypto", "authlib"}
-)
+JWT_MODULES: frozenset[str] = frozenset({"jwt", "jose", "python_jose", "jwcrypto", "authlib"})
 
 UNVERIFIED_HELPERS: frozenset[str] = frozenset(
     {"_create_unverified_context", "create_default_context"}
 )
 
-DEBUG_RUNNERS: frozenset[str] = frozenset(
-    {"run", "run_simple", "serve", "make_server", "runapi"}
-)
+DEBUG_RUNNERS: frozenset[str] = frozenset({"run", "run_simple", "serve", "make_server", "runapi"})
 
 
 def _keyword_bool(node: ast.Call, name: str) -> bool | None:
@@ -80,7 +76,7 @@ def _literal_false_dict(node: ast.AST) -> bool:
     """Return True for a dict literal containing a verify flag set to False."""
     if not isinstance(node, ast.Dict):
         return False
-    for key, value in zip(node.keys, node.values):
+    for key, value in zip(node.keys, node.values, strict=False):
         if not isinstance(key, ast.Constant) or not isinstance(key.value, str):
             continue
         if not isinstance(value, ast.Constant) or value.value is not False:
@@ -94,7 +90,7 @@ def _dict_has_false_key(node: ast.AST, tokens: frozenset[str]) -> str:
     """Return the key name of a dict entry set to False and matching tokens."""
     if not isinstance(node, ast.Dict):
         return ""
-    for key, value in zip(node.keys, node.values):
+    for key, value in zip(node.keys, node.values, strict=False):
         if not isinstance(key, ast.Constant) or not isinstance(key.value, str):
             continue
         if not isinstance(value, ast.Constant) or value.value is not False:
@@ -120,15 +116,17 @@ class AuthVisitor(Visitor):
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         """Inspect annotated assignments for the same debug flag."""
         rule = self._rule("AUTH003")
-        if rule is not None and isinstance(node.value, ast.Constant):
-            if node.value.value is True and self._is_debug_name(node.target):
-                self._add(
-                    rule.rule_id,
-                    node,
-                    MESSAGES["AUTH003"].format(
-                        setting=f"{_dotted_name(node.target)} = True"
-                    ),
-                )
+        if (
+            rule is not None
+            and isinstance(node.value, ast.Constant)
+            and node.value.value is True
+            and self._is_debug_name(node.target)
+        ):
+            self._add(
+                rule.rule_id,
+                node,
+                MESSAGES["AUTH003"].format(setting=f"{_dotted_name(node.target)} = True"),
+            )
         self.generic_visit(node)
 
     def _is_debug_name(self, node: ast.AST) -> bool:
@@ -147,9 +145,7 @@ class AuthVisitor(Visitor):
                 self._add(
                     rule.rule_id,
                     node,
-                    MESSAGES["AUTH003"].format(
-                        setting=f"{_dotted_name(target)} = True"
-                    ),
+                    MESSAGES["AUTH003"].format(setting=f"{_dotted_name(target)} = True"),
                 )
                 return
 
@@ -223,9 +219,7 @@ class AuthVisitor(Visitor):
         if not _mentions_jwt_module(_dotted_name(node.func)):
             return False
 
-        tokens = frozenset(
-            token.lower() for token in rule.patterns._strings("unsafe_options")
-        )
+        tokens = frozenset(token.lower() for token in rule.patterns._strings("unsafe_options"))
 
         for keyword in node.keywords:
             if not keyword.arg:

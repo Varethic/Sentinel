@@ -19,7 +19,6 @@ from src.core.engine import (
     _call_name,
     _dynamic_kind,
     _first_argument,
-    _import_aliases,
     _iter_subexpressions,
     _resolve_import_sinks,
 )

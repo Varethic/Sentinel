@@ -22,7 +22,7 @@ from src.core.engine import (
     _matches_module,
     _string_value,
 )
-from src.core.loader import Rule, _rules_for
+from src.core.loader import _rules_for
 
 ANALYZER_NAME: str = "redos"
 
@@ -32,18 +32,13 @@ MESSAGES: dict[str, str] = {
         "a failing match backtracks exponentially on attacker input"
     ),
     "DOS002": (
-        "outbound request {sink}() has no timeout=; a slow peer blocks the worker "
-        "indefinitely"
+        "outbound request {sink}() has no timeout=; a slow peer blocks the worker indefinitely"
     ),
 }
 
-HTTP_MODULES: frozenset[str] = frozenset(
-    {"requests", "httpx", "urllib", "urllib3", "aiohttp"}
-)
+HTTP_MODULES: frozenset[str] = frozenset({"requests", "httpx", "urllib", "urllib3", "aiohttp"})
 
-_NESTED_QUANTIFIER = re.compile(
-    r"\([^()]*(?:[+*]|\{\d+,\d*\})[^()]*\)(?:[+*]|\{\d+,\d*\})"
-)
+_NESTED_QUANTIFIER = re.compile(r"\([^()]*(?:[+*]|\{\d+,\d*\})[^()]*\)(?:[+*]|\{\d+,\d*\})")
 
 _OVERLAPPING_ALTERNATION = re.compile(r"\([^()]*\|[^()]*\)(?:[+*]|\{\d+,\d*\})")
 
@@ -153,8 +148,7 @@ class RedosVisitor(Visitor):
             return
         sinks = {sink.lower() for sink in rule.patterns._strings("sinks")}
         modules = frozenset(
-            item.lower()
-            for item in (rule.patterns._strings("sink_modules") or HTTP_MODULES)
+            item.lower() for item in (rule.patterns._strings("sink_modules") or HTTP_MODULES)
         )
         if not _is_http_sink(node, sinks, modules):
             return

@@ -119,12 +119,14 @@ def _guarded_upward(root: ast.AST, node: ast.AST, guards: frozenset[str]) -> boo
     """
     current: ast.AST = node
     for parent in _parents_of(root, node):
-        if isinstance(parent, ast.Call) and parent.func is not current:
-            if node in parent.args or any(kw.value is node for kw in parent.keywords):
-                continue
-        if isinstance(parent, ast.Call) and parent.func is current:
-            if _call_name(parent) in guards:
-                return True
+        if (
+            isinstance(parent, ast.Call)
+            and parent.func is not current
+            and (node in parent.args or any(kw.value is node for kw in parent.keywords))
+        ):
+            continue
+        if isinstance(parent, ast.Call) and parent.func is current and _call_name(parent) in guards:
+            return True
         if isinstance(parent, ast.Attribute):
             if parent.attr.lower() in guards:
                 return True
@@ -149,9 +151,8 @@ def _is_guarded(node: ast.AST, guards: frozenset[str]) -> bool:
     for child in _iter_subexpressions(node):
         if isinstance(child, ast.Call) and _call_name(child) in guards:
             return True
-        if isinstance(child, ast.Attribute):
-            if child.attr.lower() in guards:
-                return True
+        if isinstance(child, ast.Attribute) and child.attr.lower() in guards:
+            return True
     return False
 
 

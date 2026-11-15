@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sentinel"
-version = "0.1.0"
+version = "1.2"
 description = "Defensive web security auditing and static code analysis (SAST) CLI for Python web applications."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -48,7 +48,7 @@ Security = "https://github.com/Varethic/Sentinel/security/policy"
 sentinel = "src.cli:_main"
 
 [tool.setuptools]
-packages = ["src", "src.core", "src.analyzers", "src.reporters"]
+packages = ["src", "src.core", "src.analyzers", "src.reporters", "src.active"]
 [tool.setuptools.package-data]
 "src" = ["json/*.json"]
 
@@ -58,3 +58,4 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E401", "I001"]

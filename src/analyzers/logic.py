@@ -72,7 +72,8 @@ class LogicVisitor(Visitor):
                         self._add(
                             "LGC001",
                             node,
-                            f"Race condition in balance/inventory mutation '{tname}' without concurrency lock or select_for_update",
+                            f"Race condition in balance/inventory mutation '{tname}' "
+                            "without concurrency lock or select_for_update",
                         )
         self.generic_visit(node)
 
@@ -82,16 +83,18 @@ class LogicVisitor(Visitor):
         if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, (ast.Sub, ast.Add)):
             for target in node.targets:
                 tname = self._target_name(target)
-                if any(k in tname for k in BALANCE_KEYWORDS):
-                    if lineno not in self._reported_lines:
-                        scope = _enclosing_scope(self._target.tree, node)
-                        if not _has_concurrency_lock(scope, LOCK_TOKENS):
-                            self._reported_lines.add(lineno)
-                            self._add(
-                                "LGC001",
-                                node,
-                                f"Race condition in balance/inventory update '{tname}' without concurrency lock or select_for_update",
-                            )
+                if any(k in tname for k in BALANCE_KEYWORDS) and (
+                    lineno not in self._reported_lines
+                ):
+                    scope = _enclosing_scope(self._target.tree, node)
+                    if not _has_concurrency_lock(scope, LOCK_TOKENS):
+                        self._reported_lines.add(lineno)
+                        self._add(
+                            "LGC001",
+                            node,
+                            f"Race condition in balance/inventory update '{tname}' "
+                            "without concurrency lock or select_for_update",
+                        )
 
         if isinstance(node.value, ast.Call):
             cname = _call_name(node.value)
@@ -101,14 +104,17 @@ class LogicVisitor(Visitor):
                     tname = self._target_name(target)
                     if any(f in tname for f in FINANCIAL_FIELDS):
                         scope = _enclosing_scope(self._target.tree, node)
-                        if not _has_positive_bounds_check(scope, tname):
-                            if lineno not in self._reported_lines:
-                                self._reported_lines.add(lineno)
-                                self._add(
-                                    "LGC002",
-                                    node,
-                                    f"Financial or quantity input '{tname}' read from request without positive bounds validation (<= 0)",
-                                )
+                        if (
+                            not _has_positive_bounds_check(scope, tname)
+                            and lineno not in self._reported_lines
+                        ):
+                            self._reported_lines.add(lineno)
+                            self._add(
+                                "LGC002",
+                                node,
+                                f"Financial or quantity input '{tname}' read from request "
+                                "without positive bounds validation (<= 0)",
+                            )
         self.generic_visit(node)
 
 

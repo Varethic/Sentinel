@@ -344,9 +344,10 @@ class SecretsVisitor(Visitor):
                 value = parent.value if isinstance(parent, ast.Return) else parent.value
                 if isinstance(value, ast.Call) and value is node:
                     for ancestor in self._parents_of(parent):
-                        if isinstance(ancestor, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                            if _matches_token(ancestor.name, tokens):
-                                return ancestor.name
+                        if isinstance(
+                            ancestor, (ast.FunctionDef, ast.AsyncFunctionDef)
+                        ) and _matches_token(ancestor.name, tokens):
+                            return ancestor.name
             if isinstance(parent, ast.Call):
                 func_name = _call_name(parent)
                 if _matches_token(func_name, tokens):

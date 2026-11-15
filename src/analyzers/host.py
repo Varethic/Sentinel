@@ -17,11 +17,10 @@ from src.core.engine import (
     Visitor,
     _call_arguments,
     _call_name,
-    _dotted_name,
     _iter_subexpressions,
     _string_value,
 )
-from src.core.loader import Rule, _rules_for
+from src.core.loader import _rules_for
 
 ANALYZER_NAME: str = "host"
 
@@ -40,9 +39,7 @@ _HOST_HEADERS: frozenset[str] = frozenset(
     {"host", "x-forwarded-host", "http_host", "http_x_forwarded_host"}
 )
 
-_HOST_ATTRS: frozenset[str] = frozenset(
-    {"host", "get_host"}
-)
+_HOST_ATTRS: frozenset[str] = frozenset({"host", "get_host"})
 
 _REDIRECT_SINKS: frozenset[str] = frozenset(
     {"redirect", "url_for", "urljoin", "send_reset_email", "send_mail"}
@@ -68,9 +65,8 @@ def _is_host_header_access(node: ast.AST) -> str | None:
                 val = _string_value(arg)
                 if val and val.lower() in _HOST_HEADERS:
                     return val
-    if isinstance(node, ast.Attribute):
-        if node.attr.lower() in _HOST_ATTRS:
-            return node.attr
+    if isinstance(node, ast.Attribute) and node.attr.lower() in _HOST_ATTRS:
+        return node.attr
     return None
 
 
@@ -96,9 +92,7 @@ def _evaluate_cache_surface(headers: dict[str, str]) -> list[str]:
     if found_cache_header:
         vary = lowered.get("vary", "").lower()
         if "host" not in vary:
-            reasons.append(
-                f"caching header '{found_cache_header}' present without Vary: Host"
-            )
+            reasons.append(f"caching header '{found_cache_header}' present without Vary: Host")
     return reasons
 
 
@@ -157,9 +151,7 @@ class HostVisitor(Visitor):
             self._add(
                 rule.rule_id,
                 node,
-                MESSAGES["HST001"].format(
-                    source=host_source, sink="URL f-string construction"
-                ),
+                MESSAGES["HST001"].format(source=host_source, sink="URL f-string construction"),
             )
 
 

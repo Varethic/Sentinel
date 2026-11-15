@@ -15,7 +15,6 @@ import ast
 from src.core.engine import (
     SourceFile,
     Visitor,
-    _call_arguments,
     _call_name,
     _dotted_name,
     _import_aliases,
@@ -69,9 +68,8 @@ def _reads_request_payload(node: ast.AST) -> bool:
     and attribute reads such as ``request.post`` or ``request.data``.
     """
     for child in _iter_subexpressions(node):
-        if isinstance(child, ast.Attribute):
-            if child.attr.lower() in REQUEST_SOURCES:
-                return True
+        if isinstance(child, ast.Attribute) and child.attr.lower() in REQUEST_SOURCES:
+            return True
         if isinstance(child, ast.Call):
             name = _call_name(child)
             if name in REQUEST_SOURCES:
@@ -123,8 +121,7 @@ class ApiVisitor(Visitor):
             return
         sinks = {sink.lower() for sink in rule.patterns._strings("sinks")}
         modules = frozenset(
-            item.lower()
-            for item in (rule.patterns._strings("sink_modules") or GRAPHQL_MODULES)
+            item.lower() for item in (rule.patterns._strings("sink_modules") or GRAPHQL_MODULES)
         )
         dotted = _resolve_dotted(_dotted_name(node.func), self._aliases)
         matched = _matches_module(dotted, modules)
@@ -135,9 +132,7 @@ class ApiVisitor(Visitor):
             dotted.rsplit(".", 1)[0] if "." in dotted else "", sinks
         ):
             return
-        keywords = rule.patterns._strings("introspection_keywords") or [
-            "introspection"
-        ]
+        keywords = rule.patterns._strings("introspection_keywords") or ["introspection"]
         if not _keyword_true(node, keywords):
             return
         self._add(
