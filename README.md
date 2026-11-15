@@ -6,7 +6,7 @@
 
 Preliminary security auditing, defensive gap analysis, passive HTTP header evaluation, and authorized active vulnerability assessment.
 
-[![Version](https://img.shields.io/badge/version-1.2-blue.svg)](changelog.md)
+[![Version](https://img.shields.io/badge/version-1.3-blue.svg)](changelog.md)
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-informational)](https://github.com/Varethic/Sentinel)
 [![License: Strict Security](https://img.shields.io/badge/license-Strict%20Defensive%20Security-red)](LICENSE)
@@ -30,6 +30,9 @@ Sentinel answers one critical question: **Does a web application follow defensiv
 * **Zero-Configuration Interactive Mode**: Simply run `sentinel` to enter an interactive session.
 * **Continuous Scanning**: Audit one target, inspect findings, and press `Enter` to scan another target.
 * **Dual-Team Architecture**: Concurrently executes passive surface auditing (blue team) and active vulnerability probing (red team).
+* **Authenticated Scanning**: Supports `--bearer <token>`, `-H`/`--header`, and `-b`/`--cookie` for auditing protected endpoints.
+* **Automated Code Remediation**: Generate Git-compatible unified diffs and safely fix vulnerabilities in-place with `sentinel fix`.
+* **CI/CD Security Gate**: Headless DevSecOps gate with `sentinel ci` supporting configurable `--fail-on` and standard SARIF v2.1.0 export.
 * **Actionable Remediation Guidance**: Every identified gap is paired with concrete OWASP Top 10 (2021/2023) and CWE mitigation instructions.
 * **Static Source Analysis (SAST)**: 172 data-driven rules validated against Pydantic schemas.
 
@@ -55,20 +58,30 @@ pip install -e .
 
 ### CLI Commands
 
-Sentinel is intentionally simple and streamlined:
+Sentinel provides clean interactive, CI/CD, and auto-fix interfaces:
 
 ```bash
 # 1. Interactive Mode (No arguments required)
 $ sentinel
 
-# 2. Direct Target Mode
+# 2. Direct Target & Authenticated Web Audit
 $ sentinel example.com
+$ sentinel example.com --bearer "eyJhbGciOi..."
+$ sentinel example.com -H "Authorization: Token xyz" -b "session=abc123"
 
-# 3. Tool Info & Disclaimer
-$ sentinel --info
+# 3. DevSecOps CI/CD Gate (Exits with code 1 on blocking findings)
+$ sentinel ci src/ --fail-on high --sarif results.sarif
+$ sentinel ci http://localhost:8000 --fail-on medium --json report.json
 
-# 4. Version Check
+# 4. Automated Code Remediation & Patching
+$ sentinel fix src/                     # Preview unified diff (dry-run)
+$ sentinel fix src/ --write             # Apply safe patches directly to disk
+$ sentinel fix src/ --rule CMDI002      # Patch only specific rule
+
+# 5. Rule Catalog, Version & Info
+$ sentinel rules
 $ sentinel --version
+$ sentinel --info
 ```
 
 ### Interactive Session Walkthrough

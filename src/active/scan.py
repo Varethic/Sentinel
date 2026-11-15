@@ -179,7 +179,7 @@ def _fetch_no_redirect(
     session.requests += 1
     try:
         return session._client.request(method.upper(), url, follow_redirects=False, **kwargs)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:                
         raise active_sqli._ProbeFailure(f"{type(exc).__name__}: {exc}") from exc
 
 
@@ -302,7 +302,7 @@ def detect_xss(page: Page, session: active_sqli._ProbeSession) -> list[Finding]:
 
 def detect_ssti(page: Page, session: active_sqli._ProbeSession) -> list[Finding]:
     findings: list[Finding] = []
-    candidates: list[tuple[str, str, str]] = []  # url, method, field
+    candidates: list[tuple[str, str, str]] = []                      
     for form in page.forms:
         for field_name in form.field_names:
             candidates.append((form.url, form.method, field_name))
@@ -558,7 +558,7 @@ def detect_headers(page: Page, session: active_sqli._ProbeSession) -> list[Findi
                 time.sleep(session.delay)
             session.requests += 1
             spoofed = session._client.get(candidate, headers={"X-Forwarded-For": "127.0.0.1"})
-        except Exception:  # noqa: BLE001
+        except Exception:                
             continue
         new_flags = set(_non_placeholder_flags(spoofed.text)) - set(
             _non_placeholder_flags(baseline.text)
@@ -603,7 +603,7 @@ def detect_cors(page: Page, session: active_sqli._ProbeSession) -> list[Finding]
             response = session._client.get(
                 candidate, headers={"Origin": "https://sentinel.example"}
             )
-        except Exception:  # noqa: BLE001
+        except Exception:                
             continue
         acao = response.headers.get("access-control-allow-origin", "")
         acac = response.headers.get("access-control-allow-credentials", "")
@@ -669,7 +669,7 @@ def detect_jwt(page: Page, session: active_sqli._ProbeSession) -> list[Finding]:
         return findings
     try:
         payload = json.loads(base64.urlsafe_b64decode(parts[1] + "=="))
-    except Exception:  # noqa: BLE001
+    except Exception:                
         return findings
     payload.update({"role": "admin", "sub": "admin"})
     enc = (
@@ -1087,7 +1087,7 @@ def _run_checks(pages: list[Page], session: active_sqli._ProbeSession) -> list[F
                     findings.extend(detector(page))
                 else:
                     findings.extend(detector(page, session))
-            except Exception:  # noqa: BLE001
+            except Exception:                
                 continue
     unique: list[Finding] = []
     seen: set[tuple[str, str, str]] = set()
@@ -1108,9 +1108,17 @@ def _run(
     delay: float,
     timeout: float,
     max_pages: int,
+    headers: dict[str, str] | None = None,
+    cookies: dict[str, str] | None = None,
 ) -> ScanReport:
     report = ScanReport(target=_display_target(url), mode="site crawl" if crawl else "active scan")
-    session = active_sqli._ProbeSession(budget=budget, delay=delay, timeout=timeout)
+    session = active_sqli._ProbeSession(
+        budget=budget,
+        delay=delay,
+        timeout=timeout,
+        headers=headers,
+        cookies=cookies,
+    )
     started = time.perf_counter()
     try:
         pages = _crawl(session, url, max_pages if crawl else 1, report)
@@ -1138,6 +1146,8 @@ def _run(
                     time_probes=False,
                     mode="active scan",
                     display=_display_target(url),
+                    headers=headers,
+                    cookies=cookies,
                 )
                 session.requests += sqli_report.requests
                 report.tested.extend(sqli_report.tested)
@@ -1154,7 +1164,7 @@ def _run(
                     )
                 report.errors.extend(sqli_report.errors)
                 report.notes.extend(sqli_report.notes)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:                
                 report.errors.append(f"sqli: {exc}")
         all_findings = class_findings + sqli_findings
         report.findings = all_findings

@@ -2003,14 +2003,10 @@ def _audit_web(
     probe: bool = True,
     deep: bool = True,
     max_pages: int = MAX_PAGES,
+    headers: dict[str, str] | None = None,
+    cookies: dict[str, str] | None = None,
 ) -> WebReport:
-    """Run the unified xss / sql injection / headers / CORS check for one URL.
-
-    By default this performs a single passive ``GET`` plus markup inspection of
-    that response. With ``deep=True`` it follows up to ``max_pages`` discovered
-    same-origin GET links. ``probe=True`` additionally sends one benign canary
-    request per page that has query parameters, to check for reflected output.
-    """
+    """Run the unified xss / sql injection / headers / CORS check for one URL."""
     target = _normalize_url(url)
     target_host = urlparse(target).hostname or ""
 
@@ -2029,6 +2025,31 @@ def _audit_web(
             deep=deep,
             whitelisted=True,
         )
+
+    if client is None:
+        req_headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
+        }
+        if headers:
+            req_headers.update(headers)
+        with httpx.Client(
+            timeout=timeout,
+            follow_redirects=follow_redirects,
+            max_redirects=max_redirects,
+            headers=req_headers,
+            cookies=cookies,
+        ) as session_client:
+            return _audit_web(
+                target,
+                timeout=timeout,
+                follow_redirects=follow_redirects,
+                max_redirects=max_redirects,
+                client=session_client,
+                probe=probe,
+                deep=deep,
+                max_pages=max_pages,
+            )
 
     response, errors = _fetch(target, timeout, follow_redirects, max_redirects, client)
     if response is None:

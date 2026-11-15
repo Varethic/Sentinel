@@ -156,14 +156,20 @@ class _ProbeSession:
         budget: int = DEFAULT_BUDGET,
         delay: float = DEFAULT_DELAY,
         timeout: float = DEFAULT_TIMEOUT,
+        headers: dict[str, str] | None = None,
+        cookies: dict[str, str] | None = None,
     ) -> None:
         self.budget = max(1, budget)
         self.delay = max(0.0, delay)
         self.requests = 0
+        req_headers = {"User-Agent": USER_AGENT}
+        if headers:
+            req_headers.update(headers)
         self._client = httpx.Client(
             timeout=timeout,
             follow_redirects=True,
-            headers={"User-Agent": USER_AGENT},
+            headers=req_headers,
+            cookies=cookies,
         )
 
     def fetch(
@@ -699,6 +705,8 @@ def _run(
     time_probes: bool = True,
     mode: str | None = None,
     display: str | None = None,
+    headers: dict[str, str] | None = None,
+    cookies: dict[str, str] | None = None,
 ) -> ActiveReport:
     """Execute probes across prepared targets and return one report."""
     if not targets:
@@ -707,7 +715,13 @@ def _run(
         target=display or targets[0].url,
         mode=mode or targets[0].label,
     )
-    session = _ProbeSession(budget=budget, delay=delay, timeout=timeout)
+    session = _ProbeSession(
+        budget=budget,
+        delay=delay,
+        timeout=timeout,
+        headers=headers,
+        cookies=cookies,
+    )
     started = time.perf_counter()
     try:
         _execute(session, report, targets, time_probes=time_probes)
@@ -728,13 +742,21 @@ def _run_discovered(
     timeout: float,
     time_probes: bool,
     max_pages: int,
+    headers: dict[str, str] | None = None,
+    cookies: dict[str, str] | None = None,
 ) -> ActiveReport:
     """Discover targets on ``url`` and verify them in one run."""
     report = ActiveReport(
         target=_display_target(url),
         mode="site crawl" if crawl else "auto-discovery",
     )
-    session = _ProbeSession(budget=budget, delay=delay, timeout=timeout)
+    session = _ProbeSession(
+        budget=budget,
+        delay=delay,
+        timeout=timeout,
+        headers=headers,
+        cookies=cookies,
+    )
     started = time.perf_counter()
     try:
         targets, errors, pages, skipped = _collect_targets(

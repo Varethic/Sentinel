@@ -1,5 +1,6 @@
 from __future__ import annotations
-import concurrent.futures, sys, time, urllib.parse
+import concurrent.futures, json, sys, time, urllib.parse
+from pathlib import Path
 from rich.align import Align
 from rich.console import Console
 from rich.live import Live
@@ -7,19 +8,45 @@ from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 from src.active import scan as active_scan
-from src.analyzers import headers as headers_analyzer
+from src.analyzers import (
+    api as api_analyzer,
+    auth as auth_analyzer,
+    client as client_analyzer,
+    cloud as cloud_analyzer,
+    cmdi as cmdi_analyzer,
+    cve as cve_analyzer,
+    deps as deps_analyzer,
+    deserial as deserial_analyzer,
+    headers as headers_analyzer,
+    host as host_analyzer,
+    idor as idor_analyzer,
+    logic as logic_analyzer,
+    redos as redos_analyzer,
+    secrets as secrets_analyzer,
+    sqli as sqli_analyzer,
+    ssrf as ssrf_analyzer,
+    ssti as ssti_analyzer,
+    tamper as tamper_analyzer,
+    traversal as traversal_analyzer,
+    webfile as webfile_analyzer,
+    xss as xss_analyzer,
+    xxe as xxe_analyzer,
+)
+from src.core import engine
+from src.core.loader import Severity, _load_all
+from src.patch import _fix
+from src.reporters import json as json_rep, sarif as sarif_rep
 
 _CONSOLE = Console()
 
 class Config:
     def _version(self) -> str:
-        return "1.2"
+        return "1.3"
 
     def _info(self) -> str:
         return (
-            "Sentinel v1.2 - Defensive Security Auditor\n"
+            "Sentinel v1.3 - Defensive Security Auditor & DevSecOps Gate\n"
             "Preliminary security assessment and defensive educational research only.\n"
-            "Designed to audit web applications and identify defensive gaps.\n"
             "Strictly prohibited: unauthorized scanning, malicious attacks, or exploitation."
         )
 
@@ -157,6 +184,63 @@ class Config:
             },
         }
 
+def _sast_analyzers() -> list:
+    return [
+        sqli_analyzer,
+        xss_analyzer,
+        cmdi_analyzer,
+        traversal_analyzer,
+        secrets_analyzer,
+        ssrf_analyzer,
+        deserial_analyzer,
+        xxe_analyzer,
+        ssti_analyzer,
+        auth_analyzer,
+        redos_analyzer,
+        api_analyzer,
+        deps_analyzer,
+        host_analyzer,
+        idor_analyzer,
+        cloud_analyzer,
+        client_analyzer,
+        tamper_analyzer,
+        logic_analyzer,
+        cve_analyzer,
+        webfile_analyzer,
+    ]
+
+def _parse_auth(args: list[str]) -> tuple[dict[str, str], dict[str, str]]:
+    headers: dict[str, str] = {}
+    cookies: dict[str, str] = {}
+    idx = 0
+    while idx < len(args):
+        arg = args[idx]
+        if arg == "--bearer" and idx + 1 < len(args):
+            headers["Authorization"] = f"Bearer {args[idx + 1]}"
+            idx += 2
+            continue
+        if arg in ("--header", "-H") and idx + 1 < len(args):
+            raw = args[idx + 1]
+            if ":" in raw:
+                k, v = raw.split(":", 1)
+                headers[k.strip()] = v.strip()
+            idx += 2
+            continue
+        if arg in ("--cookie", "-b") and idx + 1 < len(args):
+            raw = args[idx + 1]
+            for part in raw.split(";"):
+                if "=" in part:
+                    ck, cv = part.split("=", 1)
+                    cookies[ck.strip()] = cv.strip()
+            idx += 2
+            continue
+        idx += 1
+    return headers, cookies
+
+def _severity_rank(sev: Severity | str) -> int:
+    val = (sev.value if isinstance(sev, Severity) else str(sev)).upper()
+    return {"LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}.get(val, 0)
+
 class Auditor:
     def __init__(self) -> None:
         self.cfg = Config()
@@ -169,20 +253,47 @@ class Auditor:
         parsed = urllib.parse.urlparse(url)
         return parsed.netloc or parsed.path or url
 
-    def _blue(self, url: str, timeout: float):
+    def _blue(
+        self,
+        url: str,
+        timeout: float,
+        headers: dict[str, str] | None = None,
+        cookies: dict[str, str] | None = None,
+    ):
         try:
             return headers_analyzer._audit_web(
-                url, timeout=timeout, follow_redirects=True, probe=True, deep=True
+                url,
+                timeout=timeout,
+                follow_redirects=True,
+                probe=True,
+                deep=True,
+                headers=headers,
+                cookies=cookies,
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return exc
 
-    def _red(self, url: str, budget: int, delay: float, timeout: float):
+    def _red(
+        self,
+        url: str,
+        budget: int,
+        delay: float,
+        timeout: float,
+        headers: dict[str, str] | None = None,
+        cookies: dict[str, str] | None = None,
+    ):
         try:
             return active_scan._run(
-                url, crawl=True, budget=budget, delay=delay, timeout=timeout, max_pages=60
+                url,
+                crawl=True,
+                budget=budget,
+                delay=delay,
+                timeout=timeout,
+                max_pages=60,
+                headers=headers,
+                cookies=cookies,
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return exc
 
     def _status(self, finding) -> str:
@@ -267,7 +378,12 @@ class Auditor:
 
         return table, flagged_categories
 
-    def _scan(self, url: str) -> tuple:
+    def _scan(
+        self,
+        url: str,
+        headers: dict[str, str] | None = None,
+        cookies: dict[str, str] | None = None,
+    ) -> tuple:
         progress = Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -290,13 +406,15 @@ class Auditor:
             ),
             concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool,
         ):
-            bf = pool.submit(self._blue, url, self.cfg._timeout() * 2)
+            bf = pool.submit(self._blue, url, self.cfg._timeout() * 2, headers, cookies)
             rf = pool.submit(
                 self._red,
                 url,
                 self.cfg._budget(),
                 self.cfg._delay(),
                 self.cfg._timeout(),
+                headers,
+                cookies,
             )
             while not (bf.done() and rf.done()):
                 if bf.done():
@@ -344,7 +462,12 @@ class Auditor:
         except (KeyboardInterrupt, EOFError):
             return None
 
-    def _loop(self, initial: str | None = None) -> None:
+    def _loop(
+        self,
+        initial: str | None = None,
+        headers: dict[str, str] | None = None,
+        cookies: dict[str, str] | None = None,
+    ) -> None:
         target = initial
         while True:
             if not target:
@@ -354,7 +477,7 @@ class Auditor:
                 if not target:
                     break
             self._clean()
-            blue, red = self._scan(target)
+            blue, red = self._scan(target, headers=headers, cookies=cookies)
             self._show(target, blue, red)
             target = None
             if not self._wait():
@@ -363,18 +486,247 @@ class Auditor:
         self._clean()
         self.console.print("[dim]Sentinel terminated. Stay safe![/dim]")
 
+    def _run_sast_ci(
+        self,
+        target_path: Path,
+        threshold: str,
+        sarif_file: Path | None = None,
+        json_file: Path | None = None,
+    ) -> int:
+        print(f"Sentinel CI (SAST): Auditing code at {target_path}...")
+        report = engine._run_analyzers(target_path, _sast_analyzers())
+        thresh_rank = _severity_rank(threshold)
+        blocking = [f for f in report.findings if _severity_rank(f.severity) >= thresh_rank]
+
+        for f in report.findings:
+            sev = f.severity.value.upper()
+            status = "BLOCKING" if _severity_rank(f.severity) >= thresh_rank else "ADVISORY"
+            print(f"[{status}] {sev:<8} {f.rule_id} {f.file_path}:{f.line_number} - {f.message}")
+
+        if sarif_file:
+            sarif_text = sarif_rep._render_sarif(report, target_path)
+            sarif_file.write_text(sarif_text, encoding="utf-8")
+            print(f"SARIF report written to {sarif_file}")
+
+        if json_file:
+            json_text = json_rep._render_code(report, str(target_path))
+            json_file.write_text(json_text, encoding="utf-8")
+            print(f"JSON report written to {json_file}")
+
+        print(
+            f"Summary: {len(report.findings)} finding(s) total, "
+            f"{len(blocking)} blocking (fail-on: {threshold.upper()})"
+        )
+        return 1 if blocking else 0
+
+    def _run_web_ci(
+        self,
+        url: str,
+        threshold: str,
+        headers: dict[str, str],
+        cookies: dict[str, str],
+        json_file: Path | None = None,
+    ) -> int:
+        print(f"Sentinel CI (Web): Auditing {url}...")
+        thresh_rank = _severity_rank(threshold)
+        blue = self._blue(url, self.cfg._timeout() * 2, headers=headers, cookies=cookies)
+        red = self._red(
+            url,
+            self.cfg._budget(),
+            self.cfg._delay(),
+            self.cfg._timeout(),
+            headers=headers,
+            cookies=cookies,
+        )
+
+        blocking_count = 0
+        findings_out: list[dict[str, str]] = []
+
+        if not isinstance(blue, Exception):
+            for bf in getattr(blue, "findings", []) or []:
+                sev = getattr(bf, "severity", Severity.MEDIUM)
+                sev_val = sev.value if isinstance(sev, Severity) else str(sev)
+                is_block = _severity_rank(sev_val) >= thresh_rank
+                if is_block:
+                    blocking_count += 1
+                status = "BLOCKING" if is_block else "ADVISORY"
+                print(f"[{status}] {sev_val:<8} {bf.rule_id} {url} - {bf.rule_name}")
+                findings_out.append(
+                    {"category": "headers", "rule": bf.rule_id, "detail": bf.rule_name}
+                )
+
+        if not isinstance(red, Exception):
+            for rf in getattr(red, "findings", []) or []:
+                is_critical = "flag" in getattr(rf, "evidence", "").lower()
+                sev_val = "CRITICAL" if is_critical else "HIGH"
+                is_block = _severity_rank(sev_val) >= thresh_rank
+                if is_block:
+                    blocking_count += 1
+                status = "BLOCKING" if is_block else "ADVISORY"
+                target_str = getattr(rf, "target", url)
+                cat_str = getattr(rf, "category", "active")
+                ev_str = getattr(rf, "evidence", "")
+                print(f"[{status}] {sev_val:<8} {cat_str} {target_str} - {ev_str}")
+                findings_out.append(
+                    {"category": cat_str, "target": target_str, "evidence": ev_str}
+                )
+
+        if json_file:
+            payload = json.dumps({"url": url, "findings": findings_out}, indent=2)
+            json_file.write_text(payload, encoding="utf-8")
+            print(f"JSON report written to {json_file}")
+
+        print(
+            f"Summary: {len(findings_out)} finding(s) total, "
+            f"{blocking_count} blocking (fail-on: {threshold.upper()})"
+        )
+        return 1 if blocking_count > 0 else 0
+
+    def _ci(self, args: list[str]) -> int:
+        threshold = "high"
+        sarif_path: Path | None = None
+        json_path: Path | None = None
+        target: str = "."
+
+        headers, cookies = _parse_auth(args)
+        idx = 0
+        while idx < len(args):
+            arg = args[idx]
+            if arg == "--fail-on" and idx + 1 < len(args):
+                threshold = args[idx + 1].lower()
+                idx += 2
+                continue
+            if arg == "--sarif" and idx + 1 < len(args):
+                sarif_path = Path(args[idx + 1]).resolve()
+                idx += 2
+                continue
+            if arg == "--json" and idx + 1 < len(args):
+                json_path = Path(args[idx + 1]).resolve()
+                idx += 2
+                continue
+            if not arg.startswith("-") and arg != "ci":
+                target = arg
+            idx += 1
+
+        is_url = target.startswith(self.cfg._schemes()) or (
+            "://" in target or target.startswith(("localhost:", "127.0.0.1:", "192.168."))
+        )
+        if is_url:
+            if not target.startswith(self.cfg._schemes()):
+                target = "http://" + target
+            return self._run_web_ci(target, threshold, headers, cookies, json_file=json_path)
+
+        p = Path(target).resolve()
+        return self._run_sast_ci(p, threshold, sarif_file=sarif_path, json_file=json_path)
+
+    def _fix_cli(self, args: list[str]) -> int:
+        write = "--write" in args or "-w" in args
+        target = "."
+        rules: set[str] | None = None
+        idx = 0
+        while idx < len(args):
+            arg = args[idx]
+            if arg == "--rule" and idx + 1 < len(args):
+                rules = {args[idx + 1]}
+                idx += 2
+                continue
+            if not arg.startswith("-") and arg != "fix":
+                target = arg
+            idx += 1
+
+        target_path = Path(target).resolve()
+        total, diff, applied = _fix(target_path, write=write, rules=rules)
+        if total == 0:
+            print("No auto-fixable findings found.")
+            return 0
+
+        print(f"Auto-Fix Summary: {total} remediation(s) across target.")
+        for item in applied:
+            print(f"  • {item}")
+        if diff:
+            print("\nUnified Diff:")
+            print(diff)
+        if write:
+            print(f"\n[SUCCESS] Applied {total} fix(es) directly to source files.")
+        else:
+            print("\n[DRY RUN] Pass --write to apply these patches to disk.")
+        return 0
+
+    def _help(self) -> None:
+        self.console.print(
+            """[bold green]Sentinel Defensive Security Auditor & DevSecOps Gate[/bold green]
+
+[bold]Usage:[/bold]
+  sentinel                        Launch interactive scan mode
+  sentinel <target> [auth flags]  Scan URL or code directory interactively
+  sentinel ci <target> [options]  Run non-interactive CI/CD security gate
+  sentinel fix <target> [options] Automatically fix common code vulnerabilities
+  sentinel rules                  List loaded security rule catalogs
+
+[bold]Authentication Options (for Web Scans):[/bold]
+  --bearer <token>                Set Authorization: Bearer <token>
+  -H, --header "Key: Value"       Set custom request header (can repeat)
+  -b, --cookie "k=v; k2=v2"       Set cookie header
+
+[bold]CI/CD Gate Options:[/bold]
+  --fail-on [low|medium|high|critical]  Minimum severity to trigger exit code 1 (default: high)
+  --sarif <file>                  Export findings in standard SARIF v2.1.0
+  --json <file>                   Export findings in JSON format
+
+[bold]Auto-Fix Options:[/bold]
+  --write, -w                     Write patches to disk (default is dry-run diff)
+  --rule <rule_id>                Apply fix only for specific rule (e.g. CMDI002)
+
+[bold]General Options:[/bold]
+  --version                       Print Sentinel version
+  --info                          Print disclaimer and defensive scope
+  --help, -h                      Show this help message"""
+        )
+
     def _start(self, args: list[str] | None = None) -> None:
         raw_args = list(sys.argv[1:]) if args is None else args
-        if "--version" in raw_args:
+        if "--version" in raw_args or "-v" in raw_args:
             self.console.print(f"Sentinel v{self.cfg._version()}")
             return
         if "--info" in raw_args:
             self.console.print(self.cfg._info())
             return
-        target = raw_args[0] if raw_args else None
-        if target and not target.startswith(self.cfg._schemes()):
+        if "--help" in raw_args or "-h" in raw_args:
+            self._help()
+            return
+
+        if raw_args and raw_args[0] == "ci":
+            code = self._ci(raw_args[1:])
+            sys.exit(code)
+
+        if raw_args and raw_args[0] == "fix":
+            code = self._fix_cli(raw_args[1:])
+            sys.exit(code)
+
+        if raw_args and raw_args[0] == "rules":
+            catalog = _load_all()
+            total_rules = sum(len(rs.rules) for rs in catalog.values())
+            self.console.print(
+                f"[bold green]Loaded {len(catalog)} rule documents "
+                f"({total_rules} rules total):[/bold green]"
+            )
+            for name, rs in sorted(catalog.items()):
+                msg = f"  • [cyan]{name:<12}[/cyan] : {len(rs.rules)} rules ({rs.title})"
+                self.console.print(msg)
+            return
+
+        headers, cookies = _parse_auth(raw_args)
+        non_flag_args = [
+            a for a in raw_args if not a.startswith("-") and a not in headers.values()
+        ]
+        target = non_flag_args[0] if non_flag_args else None
+        if (
+            target
+            and not target.startswith(self.cfg._schemes())
+            and not Path(target).resolve().exists()
+        ):
             target = "http://" + target
-        self._loop(target)
+        self._loop(target, headers=headers, cookies=cookies)
 
 _auditor = Auditor()
 

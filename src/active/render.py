@@ -19,7 +19,7 @@ class Renderer:
     def _render(self, url: str, timeout: float = 20.0) -> str | None:
         try:
             from playwright.sync_api import sync_playwright
-        except Exception:  # noqa: BLE001
+        except Exception:
             return None
         try:
             with sync_playwright() as p:
@@ -31,7 +31,7 @@ class Renderer:
                     return page.content()
                 finally:
                     browser.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             return None
 
     def _check(self, url: str, body: str, timeout: float = 20.0) -> str:

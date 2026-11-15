@@ -2,6 +2,24 @@
 
 All notable changes to the Sentinel project are documented in this file.
 
+## [1.3] - 2026-11-16
+
+### Authenticated Scanning & Credential Support
+- **Multi-Authentication Probing**: Added `--bearer <token>`, `-H`/`--header "Key: Value"`, and `-b`/`--cookie "k=v"` CLI flags.
+- **Session Forwarding**: Authenticated sessions and custom headers are automatically propagated across passive header audits (`headers.py`) and active assessment probes (`sqli.py` and `scan.py`).
+
+### Automated Vulnerability Remediation & Patching
+- **Auto-Fixer (`src/patch.py`)**: Introduced `sentinel fix <target>` to safely generate Git-compatible unified diffs and patch vulnerable code.
+- **Rule Fix Templates**: Implemented automated remediations for `CMDI002` (`shell=False`), `AUTH001` (`verify=True`), `AUTH003` (`debug=False`), `XSS003` (`autoescape=True`), `API001` (`introspection=False`), and `SECR003` (`secrets` module migration).
+- **In-Place Patching (`--write`)**: Supports previewing dry-run diffs or applying safe fixes directly with `--write`.
+
+### CI/CD Security Gate & DevSecOps Integration
+- **Non-Interactive CI Gate (`sentinel ci`)**: Added dedicated `sentinel ci <target>` command running in headless, non-interactive mode.
+- **Configurable Severity Thresholds (`--fail-on`)**: Exits with code `1` when findings meet or exceed the threshold (`low`, `medium`, `high`, `critical`), or `0` when clean.
+- **Dual Target CI Auditing**: Seamlessly runs SAST audits on source trees and active/passive verification on URLs.
+- **SARIF & JSON Export**: Added `--sarif <file>` and `--json <file>` flags for direct ingestion into GitHub Code Scanning and DevSecOps pipelines.
+- **GitHub Actions Workflow**: Updated `.github/workflows/sentinel.yml` for automated CI pull-request analysis and SARIF upload.
+
 ## [1.2] - 2026-11-14
 
 ### CLI Experience & Terminal Flow
