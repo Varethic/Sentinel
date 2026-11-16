@@ -2,6 +2,22 @@
 
 All notable changes to the Sentinel project are documented in this file.
 
+## [1.4] - 2026-11-16
+
+### Software Composition Analysis (SCA) (`src/sca.py`)
+- **Dependency Vulnerability Scanning**: Added `sentinel sca [target]` (or `sentinel deps`) to scan `requirements.txt`, `package.json`, and dependency manifests for known CVEs.
+- **Curated High-Impact Advisory Database**: Validates Python and Node packages against real-world CVEs (requests, urllib3, django, flask, jinja2, pyyaml, cryptography, werkzeug, aiohttp, axios, express, lodash, jsonwebtoken, ws).
+- **Remediation Advisories**: Pinpoints vulnerable installed versions and recommends safe upgrade target versions.
+
+### OpenAPI & Swagger Security Auditor (`src/openapi.py`)
+- **API Security Top 10 Auditing**: Added `sentinel api <spec-or-url>` to ingest OpenAPI 3.0/3.1 and Swagger 2.0 specifications from local files or remote endpoints (`/openapi.json`, `/swagger.json`, `/docs`).
+- **OWASP API Coverage**: Audits BOLA/IDOR on path parameters (API1), Broken Authentication on sensitive routes (API2), Mass Assignment on request bodies (API3), Unrestricted Resource Consumption on list endpoints (API4), SSRF parameter risks (API7), and unencrypted HTTP server misconfigurations (API8).
+
+### Git Pre-Commit Guard & Secret Leak Blocker (`src/hook.py`)
+- **Automated Hook Installation**: Added `sentinel install-hook` to set up `.git/hooks/pre-commit` in a single command.
+- **Staged File Secret Blocker**: Fast regex-based entropy and signature scanner for AWS keys, private keys, GitHub tokens, Slack tokens, Google API keys, and generic hardcoded secrets.
+- **Pre-Commit SAST Gate**: Runs high/critical SAST analysis across staged code files before allowing `git commit`, rejecting commits containing critical vulnerabilities or leaked secrets.
+
 ## [1.3] - 2026-11-16
 
 ### Authenticated Scanning & Credential Support

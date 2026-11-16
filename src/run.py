@@ -32,6 +32,7 @@ from src.analyzers import (
     xss as xss_analyzer,
     xxe as xxe_analyzer,
 )
+from src import hook, openapi, sca
 from src.core import engine
 from src.core.loader import Severity, _load_all
 from src.patch import _fix
@@ -41,7 +42,7 @@ _CONSOLE = Console()
 
 class Config:
     def _version(self) -> str:
-        return "1.3"
+        return "1.4"
 
     def _info(self) -> str:
         return (
@@ -661,9 +662,12 @@ class Auditor:
   sentinel <target> [auth flags]  Scan URL or code directory interactively
   sentinel ci <target> [options]  Run non-interactive CI/CD security gate
   sentinel fix <target> [options] Automatically fix common code vulnerabilities
+  sentinel sca [target]           Audit dependencies for known CVEs (Python/Node)
+  sentinel api <spec-or-url>      Audit OpenAPI/Swagger for OWASP API vulnerabilities
+  sentinel install-hook           Install git pre-commit security & secret guard
   sentinel rules                  List loaded security rule catalogs
 
-[bold]Authentication Options (for Web Scans):[/bold]
+[bold]Authentication Options (for Web & API Scans):[/bold]
   --bearer <token>                Set Authorization: Bearer <token>
   -H, --header "Key: Value"       Set custom request header (can repeat)
   -b, --cookie "k=v; k2=v2"       Set cookie header
@@ -702,6 +706,31 @@ class Auditor:
         if raw_args and raw_args[0] == "fix":
             code = self._fix_cli(raw_args[1:])
             sys.exit(code)
+
+        if raw_args and raw_args[0] in ("sca", "deps"):
+            target = raw_args[1] if len(raw_args) > 1 else "."
+            total, findings = sca._scan(target)
+            print(sca._render(findings, target))
+            sys.exit(1 if total > 0 else 0)
+
+        if raw_args and raw_args[0] == "api":
+            if len(raw_args) < 2:
+                print("Usage: sentinel api <spec-file-or-url> [auth flags]")
+                sys.exit(2)
+            source = raw_args[1]
+            headers, _ = _parse_auth(raw_args[2:])
+            total, findings, origin = openapi._audit(source, headers=headers)
+            print(openapi._render(findings, origin))
+            sys.exit(1 if total > 0 else 0)
+
+        if raw_args and raw_args[0] in ("install-hook", "hook"):
+            sub = raw_args[1] if (raw_args[0] == "hook" and len(raw_args) > 1) else "install"
+            if sub == "check":
+                code = hook._check()
+                sys.exit(code)
+            ok, msg = hook._install()
+            print(msg)
+            sys.exit(0 if ok else 1)
 
         if raw_args and raw_args[0] == "rules":
             catalog = _load_all()
