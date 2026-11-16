@@ -1,0 +1,20 @@
+id: git-config-disclosure
+info:
+  name: Git Configuration Exposure (.git/config)
+  severity: HIGH
+  description: Detects publicly accessible .git/config which leaks repository metadata and remote URLs.
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.git/config"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        words:
+          - "[core]"
+          - "repositoryformatversion"
+        condition: and
+        part: body

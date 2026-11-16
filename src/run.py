@@ -32,7 +32,7 @@ from src.analyzers import (
     xss as xss_analyzer,
     xxe as xxe_analyzer,
 )
-from src import hook, openapi, sca
+from src import custom, hook, iac, openapi, recon, sca, secret, tls
 from src.core import engine
 from src.core.loader import Severity, _load_all
 from src.patch import _fix
@@ -42,11 +42,11 @@ _CONSOLE = Console()
 
 class Config:
     def _version(self) -> str:
-        return "1.4"
+        return "1.5"
 
     def _info(self) -> str:
         return (
-            "Sentinel v1.3 - Defensive Security Auditor & DevSecOps Gate\n"
+            "Sentinel v1.5 - Defensive Security Auditor & DevSecOps Gate\n"
             "Preliminary security assessment and defensive educational research only.\n"
             "Strictly prohibited: unauthorized scanning, malicious attacks, or exploitation."
         )
@@ -664,6 +664,11 @@ class Auditor:
   sentinel fix <target> [options] Automatically fix common code vulnerabilities
   sentinel sca [target]           Audit dependencies for known CVEs (Python/Node)
   sentinel api <spec-or-url>      Audit OpenAPI/Swagger for OWASP API vulnerabilities
+  sentinel iac [path]             Audit Dockerfile, compose & Kubernetes manifests
+  sentinel tls <target>           Deep inspect SSL/TLS certificates and ciphers
+  sentinel recon <host-or-ip>     Fast port & exposed database/service recon
+  sentinel secrets [path]         High-entropy credential & API secret leak scanner
+  sentinel custom <url> -t <tmpl> Nuclei-style custom YAML security rule engine
   sentinel install-hook           Install git pre-commit security & secret guard
   sentinel rules                  List loaded security rule catalogs
 
@@ -721,6 +726,56 @@ class Auditor:
             headers, _ = _parse_auth(raw_args[2:])
             total, findings, origin = openapi._audit(source, headers=headers)
             print(openapi._render(findings, origin))
+            sys.exit(1 if total > 0 else 0)
+
+        if raw_args and raw_args[0] == "iac":
+            target = raw_args[1] if len(raw_args) > 1 else "."
+            total, findings = iac._scan(target)
+            print(iac._render(findings, target))
+            sys.exit(1 if total > 0 else 0)
+
+        if raw_args and raw_args[0] == "tls":
+            if len(raw_args) < 2:
+                print("Usage: sentinel tls <host-or-url>")
+                sys.exit(2)
+            target = raw_args[1]
+            total, findings, cert_info = tls._audit(target)
+            print(tls._render(findings, cert_info, target))
+            sys.exit(1 if total > 0 else 0)
+
+        if raw_args and raw_args[0] == "recon":
+            if len(raw_args) < 2:
+                print("Usage: sentinel recon <host-or-ip>")
+                sys.exit(2)
+            target = raw_args[1]
+            total, findings, open_ports = recon._scan(target)
+            print(recon._render(findings, open_ports, target))
+            sys.exit(1 if total > 0 else 0)
+
+        if raw_args and raw_args[0] in ("secrets", "secret"):
+            target = raw_args[1] if len(raw_args) > 1 else "."
+            total, findings = secret._scan(target)
+            print(secret._render(findings, target))
+            sys.exit(1 if total > 0 else 0)
+
+        if raw_args and raw_args[0] == "custom":
+            target = None
+            template_path = "templates"
+            idx = 1
+            while idx < len(raw_args):
+                arg = raw_args[idx]
+                if arg in ("-t", "--template", "--templates") and idx + 1 < len(raw_args):
+                    template_path = raw_args[idx + 1]
+                    idx += 2
+                    continue
+                if not arg.startswith("-") and target is None:
+                    target = arg
+                idx += 1
+            if not target:
+                print("Usage: sentinel custom <target-url> -t <template-or-directory>")
+                sys.exit(2)
+            total, findings, tmpl_count = custom._scan(target, template_path)
+            print(custom._render(findings, tmpl_count, target))
             sys.exit(1 if total > 0 else 0)
 
         if raw_args and raw_args[0] in ("install-hook", "hook"):

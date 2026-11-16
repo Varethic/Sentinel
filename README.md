@@ -6,7 +6,7 @@
 
 Preliminary security auditing, defensive gap analysis, passive HTTP header evaluation, and authorized active vulnerability assessment.
 
-[![Version](https://img.shields.io/badge/version-1.4-blue.svg)](changelog.md)
+[![Version](https://img.shields.io/badge/version-1.5-blue.svg)](changelog.md)
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-informational)](https://github.com/Varethic/Sentinel)
 [![License: Strict Security](https://img.shields.io/badge/license-Strict%20Defensive%20Security-red)](LICENSE)
@@ -33,6 +33,11 @@ Sentinel answers one critical question: **Does a web application follow defensiv
 * **Authenticated Scanning**: Supports `--bearer <token>`, `-H`/`--header`, and `-b`/`--cookie` for auditing protected endpoints.
 * **Software Composition Analysis (SCA)**: Audit project dependencies (`requirements.txt`, `package.json`) against known CVEs.
 * **OpenAPI / Swagger Auditor**: Automated OWASP API Top 10 auditing for BOLA/IDOR, Broken Auth, Mass Assignment, and SSRF.
+* **Container & IaC Security Auditor**: Audit Dockerfile, docker-compose, and Kubernetes manifests (`sentinel iac`).
+* **SSL/TLS & Certificate Inspector**: Deep TLS analysis, certificate expiration alerts, and deprecated cipher detection (`sentinel tls`).
+* **Port & Service Recon**: Fast multi-threaded recon probing 17 critical service ports with polite banner grabbing (`sentinel recon`).
+* **Deep Secret & Credential Scanner**: High-entropy token detection (> 4.2) and regex signature scanning for leaked cloud keys (`sentinel secrets`).
+* **Nuclei-Style Custom YAML Engine**: Declarative custom vulnerability rules with status, word, and regex matchers (`sentinel custom`).
 * **Git Pre-Commit Guard**: Installs a pre-commit hook to block secret leaks (API keys, private keys) and critical flaws before commit.
 * **Automated Code Remediation**: Generate Git-compatible unified diffs and safely fix vulnerabilities in-place with `sentinel fix`.
 * **CI/CD Security Gate**: Headless DevSecOps gate with `sentinel ci` supporting configurable `--fail-on` and standard SARIF v2.1.0 export.
@@ -88,10 +93,25 @@ $ sentinel sca .                        # Scan requirements.txt / package.json f
 $ sentinel api openapi.json             # Audit local specification
 $ sentinel api http://localhost:8000    # Auto-fetch & audit remote API spec
 
-# 7. Git Pre-Commit Guard
+# 7. Container & Infrastructure as Code (IaC) Audit
+$ sentinel iac .                        # Audit Dockerfile, docker-compose, and K8s manifests
+
+# 8. SSL/TLS Certificate & Cipher Inspector
+$ sentinel tls example.com:443          # Deep inspect certificates, expiry, and ciphers
+
+# 9. Fast & Polite Port / Service Recon
+$ sentinel recon 192.168.1.1            # Probe 17 critical service ports politely
+
+# 10. Deep Secret & Credential Scanner
+$ sentinel secrets .                    # Scan workspace for leaked API keys and tokens
+
+# 11. Nuclei-Style Custom YAML Rule Engine
+$ sentinel custom https://example.com -t templates/  # Run custom YAML vulnerability rules
+
+# 12. Git Pre-Commit Guard
 $ sentinel install-hook                 # Install secret & flaw blocker to .git/hooks
 
-# 8. Rule Catalog, Version & Info
+# 13. Rule Catalog, Version & Info
 $ sentinel rules
 $ sentinel --version
 $ sentinel --info

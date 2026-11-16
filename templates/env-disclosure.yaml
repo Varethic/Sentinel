@@ -1,0 +1,23 @@
+id: env-file-exposure
+info:
+  name: Environment Secrets File Exposure (.env)
+  severity: CRITICAL
+  description: Detects publicly exposed environment files containing API keys or database credentials.
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.env"
+      - "{{BaseURL}}/.env.local"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        words:
+          - "DB_"
+          - "SECRET"
+          - "API_KEY"
+          - "PASSWORD"
+        condition: or
+        part: body

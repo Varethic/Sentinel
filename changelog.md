@@ -2,6 +2,29 @@
 
 All notable changes to the Sentinel project are documented in this file.
 
+## [1.5] - 2026-11-16
+
+### Container & Infrastructure as Code (IaC) Security Auditor (`src/iac.py`)
+- **Docker & Compose Auditing**: Added `sentinel iac [path]` to scan `Dockerfile` and `docker-compose.yml` for root user execution (`USER root`), unpinned image tags (`:latest`), curl-pipe execution (`curl | sh`), exposed secret files (`COPY .env`), privileged containers (`privileged: true`), host namespace sharing (`network_mode: host`, `pid: host`), and Docker socket mounts (`/var/run/docker.sock`).
+- **Kubernetes Manifest Inspector**: Audits K8s Pods, Deployments, and DaemonSets for missing `securityContext` (`runAsNonRoot`, `readOnlyRootFilesystem`), dangerous Linux capabilities (`SYS_ADMIN`), and privilege escalation (`allowPrivilegeEscalation: true`).
+
+### SSL/TLS & Certificate Deep Inspector (`src/tls.py`)
+- **Certificate Health & Expiry**: Added `sentinel tls <target>` to inspect TLS certificates, parse SANs, check expiration date and days remaining, detect expiring certificates (< 30 days) and expired certificates, and flag hostname mismatches or self-signed certificates.
+- **Protocol & Cipher Suite Auditing**: Connects via TLS sockets to detect deprecated TLS 1.0 / TLS 1.1 protocol support, weak legacy ciphers (RC4, 3DES, CBC, MD5), and missing Perfect Forward Secrecy (PFS).
+
+### Fast & Polite Port & Exposed Service Recon (`src/recon.py`)
+- **Critical Service Recon**: Added `sentinel recon <host-or-ip>` to probe 17 critical service ports (SSH, HTTP, HTTPS, Docker API, Grafana, MySQL, PostgreSQL, Redis, FastAPI, Portainer, Elasticsearch, Memcached, MongoDB).
+- **Polite Banner Grabbing**: Reads initial response banners to fingerprint running services without aggressive probing.
+- **Attack Surface Risk Warnings**: Flags exposed database instances, memory caches, and unauthenticated Docker daemon APIs exposed on public network interfaces.
+
+### Deep Secret & Credential Entropy Scanner (`src/secret.py`)
+- **Signature & Entropy Detection**: Added `sentinel secrets [path]` featuring Shannon Entropy calculation (> 4.2) and regex signature scanning for AWS access keys, SSH/RSA/EC private keys, GitHub PATs, OpenAI/Anthropic/HuggingFace API keys, Stripe live keys, SendGrid, Twilio, Slack tokens, Google Cloud keys, and database connection strings with embedded passwords.
+
+### Nuclei-Style Custom YAML Security Rule Engine (`src/custom.py`)
+- **Custom Security Rules**: Added `sentinel custom <target-url> -t <template-or-directory>` allowing AppSec teams to write declarative YAML rules.
+- **Multi-Matcher Support**: Evaluates HTTP requests (`GET`, `POST`, `PUT`, `DELETE`), custom headers, payload bodies, status code matchers, word matchers (`and`/`or` conditions), and regex pattern matchers.
+- **Built-In Starter Templates**: Included initial production rules (`templates/git-config.yaml`, `templates/env-disclosure.yaml`).
+
 ## [1.4] - 2026-11-16
 
 ### Software Composition Analysis (SCA) (`src/sca.py`)

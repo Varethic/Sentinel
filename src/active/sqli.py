@@ -1,17 +1,3 @@
-"""Active SQL injection verification for explicitly authorized targets.
-
-This module sends real SQL payloads at a target supplied by the operator. It is
-deliberately opt-in: the CLI requires ``--i-own-this-target``, and targets must
-resolve to a loopback, private or lab-style host unless ``--allow-public`` is
-given. Every probe is read-only: boolean, error, UNION and time-delay only.
-No statement in this module can modify or destroy data.
-
-When no parameter is supplied, the verifier discovers GET forms, query-string
-links and login forms from the page itself, so ``sentinel <url>
---i-own-this-target`` is enough. ``--crawl`` extends discovery across
-same-origin pages.
-"""
-
 from __future__ import annotations
 
 import html
@@ -25,7 +11,7 @@ import httpx
 
 from src.active.discover import DiscoveredTarget, crawl_links, discover_page_targets
 
-USER_AGENT: str = "SentinelActive/0.1 (authorized-injection-verification)"
+USER_AGENT: str = "Varethic/Sentinel, Github"
 MARKER: str = "SentinelMark7f3a"
 DEFAULT_BUDGET: int = 120
 DEFAULT_DELAY: float = 0.15
